@@ -1,0 +1,1983 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/filter.css">
+<link rel="stylesheet" href="css/nouislider.min.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>Parnell Speeches Map</title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/tailDT.js"></script>
+<script src="js/nouislider.min.js"></script>
+<script src="js/wNumb.js"></script>
+        <script src="data/Ocean_0.js"></script>
+        <script src="data/LandMasses_1.js"></script>
+        <script src="data/Lakes_2.js"></script>
+        <script src="data/Coastline_3.js"></script>
+        <script src="data/SpeechLocations_4.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:25, minZoom:1
+        }).fitBounds([[3.3124947981290234,-122.66141747137019],[89.87764829726382,33.778222675759025]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var title = new L.Control({'position':'topright'});
+        title.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+        };
+        title.update = function () {
+            this._div.innerHTML = '<h2>Parnell Speeches Map</h2>';
+        };
+        title.addTo(map);
+        var abstract = new L.Control({'position':'topleft'});
+        abstract.onAdd = function (map) {
+            this._div = L.DomUtil.create('div',
+            'leaflet-control abstract');
+            this._div.id = 'abstract'
+                this._div.setAttribute("onmouseenter", "abstract.show()");
+                this._div.setAttribute("onmouseleave", "abstract.hide()");
+                this.hide();
+                return this._div;
+            };
+            abstract.hide = function () {
+                this._div.classList.remove("abstractUncollapsed");
+                this._div.classList.add("abstract");
+                this._div.innerHTML = 'i'
+            }
+            abstract.show = function () {
+                this._div.classList.remove("abstract");
+                this._div.classList.add("abstractUncollapsed");
+                this._div.innerHTML = 'This map displays the locations of Parnell\'s speeches. You can filter by location, speech number, speech report, speech report publication, speech date, and the number of speeches at each location. Keep in mind that applying a filter will impact other filters, so use the "clear filter" button if needed.';
+        };
+        abstract.addTo(map);
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        function pop_Ocean_0(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+        }
+
+        function style_Ocean_0_0() {
+            return {
+                pane: 'pane_Ocean_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(166,206,227,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Ocean_0');
+        map.getPane('pane_Ocean_0').style.zIndex = 400;
+        map.getPane('pane_Ocean_0').style['mix-blend-mode'] = 'normal';
+        var layer_Ocean_0 = new L.geoJson(json_Ocean_0, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Ocean_0',
+            layerName: 'layer_Ocean_0',
+            pane: 'pane_Ocean_0',
+            onEachFeature: pop_Ocean_0,
+            style: style_Ocean_0_0,
+        });
+        bounds_group.addLayer(layer_Ocean_0);
+        map.addLayer(layer_Ocean_0);
+        function pop_LandMasses_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+        }
+
+        function style_LandMasses_1_0() {
+            return {
+                pane: 'pane_LandMasses_1',
+                opacity: 1,
+                color: 'rgba(178,223,138,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(178,223,138,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_LandMasses_1');
+        map.getPane('pane_LandMasses_1').style.zIndex = 401;
+        map.getPane('pane_LandMasses_1').style['mix-blend-mode'] = 'normal';
+        var layer_LandMasses_1 = new L.geoJson(json_LandMasses_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_LandMasses_1',
+            layerName: 'layer_LandMasses_1',
+            pane: 'pane_LandMasses_1',
+            onEachFeature: pop_LandMasses_1,
+            style: style_LandMasses_1_0,
+        });
+        bounds_group.addLayer(layer_LandMasses_1);
+        map.addLayer(layer_LandMasses_1);
+        function pop_Lakes_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+        }
+
+        function style_Lakes_2_0() {
+            return {
+                pane: 'pane_Lakes_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(166,206,227,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Lakes_2');
+        map.getPane('pane_Lakes_2').style.zIndex = 402;
+        map.getPane('pane_Lakes_2').style['mix-blend-mode'] = 'normal';
+        var layer_Lakes_2 = new L.geoJson(json_Lakes_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Lakes_2',
+            layerName: 'layer_Lakes_2',
+            pane: 'pane_Lakes_2',
+            onEachFeature: pop_Lakes_2,
+            style: style_Lakes_2_0,
+        });
+        bounds_group.addLayer(layer_Lakes_2);
+        map.addLayer(layer_Lakes_2);
+        function pop_Coastline_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+        }
+
+        function style_Coastline_3_0() {
+            return {
+                pane: 'pane_Coastline_3',
+                opacity: 1,
+                color: 'rgba(0,0,0,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Coastline_3');
+        map.getPane('pane_Coastline_3').style.zIndex = 403;
+        map.getPane('pane_Coastline_3').style['mix-blend-mode'] = 'normal';
+        var layer_Coastline_3 = new L.geoJson(json_Coastline_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Coastline_3',
+            layerName: 'layer_Coastline_3',
+            pane: 'pane_Coastline_3',
+            onEachFeature: pop_Coastline_3,
+            style: style_Coastline_3_0,
+        });
+        bounds_group.addLayer(layer_Coastline_3);
+        map.addLayer(layer_Coastline_3);
+        function pop_SpeechLocations_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Location</th>\
+                        <td class="visible-with-data" id="place">' + (feature.properties['place'] !== null ? autolinker.link(String(feature.properties['place']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Speech Count</th>\
+                        <td class="visible-with-data" id="count">' + (feature.properties['count'] !== null ? autolinker.link(String(feature.properties['count']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_SpeechLocations_4_0() {
+            return {
+                pane: 'pane_SpeechLocations_4',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(180,31,53,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_SpeechLocations_4');
+        map.getPane('pane_SpeechLocations_4').style.zIndex = 404;
+        map.getPane('pane_SpeechLocations_4').style['mix-blend-mode'] = 'normal';
+        var layer_SpeechLocations_4 = new L.geoJson(json_SpeechLocations_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_SpeechLocations_4',
+            layerName: 'layer_SpeechLocations_4',
+            pane: 'pane_SpeechLocations_4',
+            onEachFeature: pop_SpeechLocations_4,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_SpeechLocations_4_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_SpeechLocations_4);
+        map.addLayer(layer_SpeechLocations_4);
+        map.on("zoomend", function(){
+
+                if (map.hasLayer(layer_LandMasses_1)) {
+                    if (map.getZoom() <= 5 && map.getZoom() >= 19) {
+                        layer_LandMasses_1.eachLayer(function (layer) {
+                            layer.openTooltip();
+                        });
+                    } else {
+                        layer_LandMasses_1.eachLayer(function (layer) {
+                            layer.closeTooltip();
+                        });
+                    }
+                }
+        });
+        setBounds();
+                if (map.hasLayer(layer_LandMasses_1)) {
+                    if (map.getZoom() <= 5 && map.getZoom() >= 19) {
+                        layer_LandMasses_1.eachLayer(function (layer) {
+                            layer.openTooltip();
+                        });
+                    } else {
+                        layer_LandMasses_1.eachLayer(function (layer) {
+                            layer.closeTooltip();
+                        });
+                    }
+                }
+        var mapDiv = document.getElementById('map');
+        var row = document.createElement('div');
+        row.className="row";
+        row.id="all";
+        row.style.height = "100%";
+        var col1 = document.createElement('div');
+        col1.className="col9";
+        col1.id = "mapWindow";
+        col1.style.height = "99%";
+        col1.style.width = "80%";
+        col1.style.display = "inline-block";
+        var col2 = document.createElement('div');
+        col2.className="col3";
+        col2.id = "menu";
+        col2.style.display = "inline-block";
+        mapDiv.parentNode.insertBefore(row, mapDiv);
+        document.getElementById("all").appendChild(col1);
+        document.getElementById("all").appendChild(col2);
+        col1.appendChild(mapDiv)
+        var Filters = {"count": "int","year": "int","filename": "str","speech_num": "str","publication": "str","place": "str"};
+        function filterFunc() {
+          map.eachLayer(function(lyr){
+          if ("options" in lyr && "dataVar" in lyr["options"]){
+            features = this[lyr["options"]["dataVar"]].features.slice(0);
+            try{
+              for (key in Filters){
+                keyS = key.replace(/[^a-zA-Z0-9_]/g, "")
+                if (Filters[key] == "str" || Filters[key] == "bool"){
+                  var selection = [];
+                  var options = document.getElementById("sel_" + keyS).options
+                  for (var i=0; i < options.length; i++) {
+                    if (options[i].selected) selection.push(options[i].value);
+                  }
+                    try{
+                      if (key in features[0].properties){
+                        for (i = features.length - 1;
+                          i >= 0; --i){
+                          if (selection.indexOf(
+                          features[i].properties[key])<0
+                          && selection.length>0) {
+                          features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                  }
+                }
+                if (Filters[key] == "int"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (parseInt(features[i].properties[key])
+                          < sliderVals[0]
+                          || parseInt(features[i].properties[key])
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "real"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (features[i].properties[key]
+                          < sliderVals[0]
+                          || features[i].properties[key]
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "date"
+                  || Filters[key] == "datetime"
+                  || Filters[key] == "time"){
+                  try{
+                    if (key in features[0].properties){
+                      HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                      startdate = document.getElementById("dat_" +
+                        HTMLkey + "_date1").value.replace(" ", "T");
+                      enddate = document.getElementById("dat_" +
+                        HTMLkey + "_date2").value.replace(" ", "T");
+                      for (i = features.length - 1; i >= 0; --i){
+                        if (features[i].properties[key] < startdate
+                          || features[i].properties[key] > enddate){
+                          features.splice(i,1);
+                        }
+                      }
+                    }
+                  } catch(err){
+                  }
+                }
+              }
+            } catch(err){
+            }
+          this[lyr["options"]["layerName"]].clearLayers();
+          this[lyr["options"]["layerName"]].addData(features);
+          }
+          })
+        }
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_count = document.createElement("div");
+            div_count.id = "div_count";
+            div_count.className = "slider";
+            document.getElementById("menu").appendChild(div_count);
+            var lab_count = document.createElement('div');
+            lab_count.innerHTML  = 'Count: <span id="val_count"></span>';
+            lab_count.className = 'filterlabel';
+            document.getElementById("menu").appendChild(lab_count);
+            var reset_count = document.createElement('div');
+            reset_count.innerHTML = 'clear filter';
+            reset_count.className = 'filterlabel';
+            lab_count.className = 'filterlabel';
+            reset_count.onclick = function() {
+                sel_count.noUiSlider.reset();
+            };
+            document.getElementById("menu").appendChild(reset_count);
+            var sel_count = document.getElementById('div_count');
+            noUiSlider.create(sel_count, {
+                connect: true,
+                start: [1, 121],
+                step: 1,
+                format: wNumb({
+                    decimals: 0,
+                    }),
+                range: {
+                min: 1,
+                max: 121
+                }
+            });
+            sel_count.noUiSlider.on('update', function (values) {
+            filterVals =[];
+            for (value in values){
+            filterVals.push(parseInt(value))
+            }
+            val_count = document.getElementById('val_count');
+            val_count.innerHTML = values.join(' - ');
+                filterFunc()
+            });
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_year = document.createElement("div");
+            div_year.id = "div_year";
+            div_year.className = "slider";
+            document.getElementById("menu").appendChild(div_year);
+            var lab_year = document.createElement('div');
+            lab_year.innerHTML  = 'Year: <span id="val_year"></span>';
+            lab_year.className = 'filterlabel';
+            document.getElementById("menu").appendChild(lab_year);
+            var reset_year = document.createElement('div');
+            reset_year.innerHTML = 'clear filter';
+            reset_year.className = 'filterlabel';
+            lab_year.className = 'filterlabel';
+            reset_year.onclick = function() {
+                sel_year.noUiSlider.reset();
+            };
+            document.getElementById("menu").appendChild(reset_year);
+            var sel_year = document.getElementById('div_year');
+            noUiSlider.create(sel_year, {
+                connect: true,
+                start: [1874, 1891],
+                step: 1,
+                format: wNumb({
+                    decimals: 0,
+                    }),
+                range: {
+                min: 1874,
+                max: 1891
+                }
+            });
+            sel_year.noUiSlider.on('update', function (values) {
+            filterVals =[];
+            for (value in values){
+            filterVals.push(parseInt(value))
+            }
+            val_year = document.getElementById('val_year');
+            val_year.innerHTML = values.join(' - ');
+                filterFunc()
+            });
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_filename = document.createElement('div');
+            div_filename.id = "div_filename";
+            div_filename.className= "filterselect";
+            document.getElementById("menu").appendChild(div_filename);
+            sel_filename = document.createElement('select');
+            sel_filename.multiple = true;
+            sel_filename.size = 10;
+            sel_filename.id = "sel_filename";
+            var filename_options_str = "<option value='' unselected></option>";
+            sel_filename.onchange = function(){filterFunc()};
+            filename_options_str  += '<option value="parnell_source_00001">parnell_source_00001</option>';
+            filename_options_str  += '<option value="parnell_source_00002">parnell_source_00002</option>';
+            filename_options_str  += '<option value="parnell_source_00003">parnell_source_00003</option>';
+            filename_options_str  += '<option value="parnell_source_00004">parnell_source_00004</option>';
+            filename_options_str  += '<option value="parnell_source_00005">parnell_source_00005</option>';
+            filename_options_str  += '<option value="parnell_source_00006">parnell_source_00006</option>';
+            filename_options_str  += '<option value="parnell_source_00007">parnell_source_00007</option>';
+            filename_options_str  += '<option value="parnell_source_00008">parnell_source_00008</option>';
+            filename_options_str  += '<option value="parnell_source_00009">parnell_source_00009</option>';
+            filename_options_str  += '<option value="parnell_source_00010">parnell_source_00010</option>';
+            filename_options_str  += '<option value="parnell_source_00011">parnell_source_00011</option>';
+            filename_options_str  += '<option value="parnell_source_00012">parnell_source_00012</option>';
+            filename_options_str  += '<option value="parnell_source_00013">parnell_source_00013</option>';
+            filename_options_str  += '<option value="parnell_source_00014">parnell_source_00014</option>';
+            filename_options_str  += '<option value="parnell_source_00015">parnell_source_00015</option>';
+            filename_options_str  += '<option value="parnell_source_00016">parnell_source_00016</option>';
+            filename_options_str  += '<option value="parnell_source_00017">parnell_source_00017</option>';
+            filename_options_str  += '<option value="parnell_source_00018">parnell_source_00018</option>';
+            filename_options_str  += '<option value="parnell_source_00019">parnell_source_00019</option>';
+            filename_options_str  += '<option value="parnell_source_00020">parnell_source_00020</option>';
+            filename_options_str  += '<option value="parnell_source_00021">parnell_source_00021</option>';
+            filename_options_str  += '<option value="parnell_source_00022">parnell_source_00022</option>';
+            filename_options_str  += '<option value="parnell_source_00023">parnell_source_00023</option>';
+            filename_options_str  += '<option value="parnell_source_00024">parnell_source_00024</option>';
+            filename_options_str  += '<option value="parnell_source_00025">parnell_source_00025</option>';
+            filename_options_str  += '<option value="parnell_source_00026">parnell_source_00026</option>';
+            filename_options_str  += '<option value="parnell_source_00027">parnell_source_00027</option>';
+            filename_options_str  += '<option value="parnell_source_00028">parnell_source_00028</option>';
+            filename_options_str  += '<option value="parnell_source_00029">parnell_source_00029</option>';
+            filename_options_str  += '<option value="parnell_source_00030">parnell_source_00030</option>';
+            filename_options_str  += '<option value="parnell_source_00031">parnell_source_00031</option>';
+            filename_options_str  += '<option value="parnell_source_00032">parnell_source_00032</option>';
+            filename_options_str  += '<option value="parnell_source_00033">parnell_source_00033</option>';
+            filename_options_str  += '<option value="parnell_source_00034">parnell_source_00034</option>';
+            filename_options_str  += '<option value="parnell_source_00035">parnell_source_00035</option>';
+            filename_options_str  += '<option value="parnell_source_00036">parnell_source_00036</option>';
+            filename_options_str  += '<option value="parnell_source_00037">parnell_source_00037</option>';
+            filename_options_str  += '<option value="parnell_source_00038">parnell_source_00038</option>';
+            filename_options_str  += '<option value="parnell_source_00039">parnell_source_00039</option>';
+            filename_options_str  += '<option value="parnell_source_00040">parnell_source_00040</option>';
+            filename_options_str  += '<option value="parnell_source_00041">parnell_source_00041</option>';
+            filename_options_str  += '<option value="parnell_source_00042">parnell_source_00042</option>';
+            filename_options_str  += '<option value="parnell_source_00043">parnell_source_00043</option>';
+            filename_options_str  += '<option value="parnell_source_00044">parnell_source_00044</option>';
+            filename_options_str  += '<option value="parnell_source_00045">parnell_source_00045</option>';
+            filename_options_str  += '<option value="parnell_source_00046">parnell_source_00046</option>';
+            filename_options_str  += '<option value="parnell_source_00049">parnell_source_00049</option>';
+            filename_options_str  += '<option value="parnell_source_00050">parnell_source_00050</option>';
+            filename_options_str  += '<option value="parnell_source_00051">parnell_source_00051</option>';
+            filename_options_str  += '<option value="parnell_source_00052">parnell_source_00052</option>';
+            filename_options_str  += '<option value="parnell_source_00053">parnell_source_00053</option>';
+            filename_options_str  += '<option value="parnell_source_00054">parnell_source_00054</option>';
+            filename_options_str  += '<option value="parnell_source_00055">parnell_source_00055</option>';
+            filename_options_str  += '<option value="parnell_source_00056">parnell_source_00056</option>';
+            filename_options_str  += '<option value="parnell_source_00057">parnell_source_00057</option>';
+            filename_options_str  += '<option value="parnell_source_00058">parnell_source_00058</option>';
+            filename_options_str  += '<option value="parnell_source_00059">parnell_source_00059</option>';
+            filename_options_str  += '<option value="parnell_source_00060">parnell_source_00060</option>';
+            filename_options_str  += '<option value="parnell_source_00061">parnell_source_00061</option>';
+            filename_options_str  += '<option value="parnell_source_00062">parnell_source_00062</option>';
+            filename_options_str  += '<option value="parnell_source_00063">parnell_source_00063</option>';
+            filename_options_str  += '<option value="parnell_source_00064">parnell_source_00064</option>';
+            filename_options_str  += '<option value="parnell_source_00065">parnell_source_00065</option>';
+            filename_options_str  += '<option value="parnell_source_00066">parnell_source_00066</option>';
+            filename_options_str  += '<option value="parnell_source_00067">parnell_source_00067</option>';
+            filename_options_str  += '<option value="parnell_source_00068">parnell_source_00068</option>';
+            filename_options_str  += '<option value="parnell_source_00069">parnell_source_00069</option>';
+            filename_options_str  += '<option value="parnell_source_00070">parnell_source_00070</option>';
+            filename_options_str  += '<option value="parnell_source_00071">parnell_source_00071</option>';
+            filename_options_str  += '<option value="parnell_source_00072">parnell_source_00072</option>';
+            filename_options_str  += '<option value="parnell_source_00073">parnell_source_00073</option>';
+            filename_options_str  += '<option value="parnell_source_00074">parnell_source_00074</option>';
+            filename_options_str  += '<option value="parnell_source_00075">parnell_source_00075</option>';
+            filename_options_str  += '<option value="parnell_source_00076">parnell_source_00076</option>';
+            filename_options_str  += '<option value="parnell_source_00077">parnell_source_00077</option>';
+            filename_options_str  += '<option value="parnell_source_00078">parnell_source_00078</option>';
+            filename_options_str  += '<option value="parnell_source_00079">parnell_source_00079</option>';
+            filename_options_str  += '<option value="parnell_source_00080">parnell_source_00080</option>';
+            filename_options_str  += '<option value="parnell_source_00081">parnell_source_00081</option>';
+            filename_options_str  += '<option value="parnell_source_00082">parnell_source_00082</option>';
+            filename_options_str  += '<option value="parnell_source_00083">parnell_source_00083</option>';
+            filename_options_str  += '<option value="parnell_source_00084">parnell_source_00084</option>';
+            filename_options_str  += '<option value="parnell_source_00085">parnell_source_00085</option>';
+            filename_options_str  += '<option value="parnell_source_00086">parnell_source_00086</option>';
+            filename_options_str  += '<option value="parnell_source_00087">parnell_source_00087</option>';
+            filename_options_str  += '<option value="parnell_source_00088">parnell_source_00088</option>';
+            filename_options_str  += '<option value="parnell_source_00089">parnell_source_00089</option>';
+            filename_options_str  += '<option value="parnell_source_00090">parnell_source_00090</option>';
+            filename_options_str  += '<option value="parnell_source_00091">parnell_source_00091</option>';
+            filename_options_str  += '<option value="parnell_source_00092">parnell_source_00092</option>';
+            filename_options_str  += '<option value="parnell_source_00093">parnell_source_00093</option>';
+            filename_options_str  += '<option value="parnell_source_00094">parnell_source_00094</option>';
+            filename_options_str  += '<option value="parnell_source_00095">parnell_source_00095</option>';
+            filename_options_str  += '<option value="parnell_source_00096">parnell_source_00096</option>';
+            filename_options_str  += '<option value="parnell_source_00097">parnell_source_00097</option>';
+            filename_options_str  += '<option value="parnell_source_00098">parnell_source_00098</option>';
+            filename_options_str  += '<option value="parnell_source_00099">parnell_source_00099</option>';
+            filename_options_str  += '<option value="parnell_source_00100">parnell_source_00100</option>';
+            filename_options_str  += '<option value="parnell_source_00102">parnell_source_00102</option>';
+            filename_options_str  += '<option value="parnell_source_00103">parnell_source_00103</option>';
+            filename_options_str  += '<option value="parnell_source_00104">parnell_source_00104</option>';
+            filename_options_str  += '<option value="parnell_source_00105">parnell_source_00105</option>';
+            filename_options_str  += '<option value="parnell_source_00106">parnell_source_00106</option>';
+            filename_options_str  += '<option value="parnell_source_00107">parnell_source_00107</option>';
+            filename_options_str  += '<option value="parnell_source_00108">parnell_source_00108</option>';
+            filename_options_str  += '<option value="parnell_source_00109">parnell_source_00109</option>';
+            filename_options_str  += '<option value="parnell_source_00110">parnell_source_00110</option>';
+            filename_options_str  += '<option value="parnell_source_00111">parnell_source_00111</option>';
+            filename_options_str  += '<option value="parnell_source_00112">parnell_source_00112</option>';
+            filename_options_str  += '<option value="parnell_source_00113">parnell_source_00113</option>';
+            filename_options_str  += '<option value="parnell_source_00114">parnell_source_00114</option>';
+            filename_options_str  += '<option value="parnell_source_00115">parnell_source_00115</option>';
+            filename_options_str  += '<option value="parnell_source_00116">parnell_source_00116</option>';
+            filename_options_str  += '<option value="parnell_source_00117">parnell_source_00117</option>';
+            filename_options_str  += '<option value="parnell_source_00118">parnell_source_00118</option>';
+            filename_options_str  += '<option value="parnell_source_00119">parnell_source_00119</option>';
+            filename_options_str  += '<option value="parnell_source_00120">parnell_source_00120</option>';
+            filename_options_str  += '<option value="parnell_source_00121">parnell_source_00121</option>';
+            filename_options_str  += '<option value="parnell_source_00122">parnell_source_00122</option>';
+            filename_options_str  += '<option value="parnell_source_00123">parnell_source_00123</option>';
+            filename_options_str  += '<option value="parnell_source_00124">parnell_source_00124</option>';
+            filename_options_str  += '<option value="parnell_source_00125">parnell_source_00125</option>';
+            filename_options_str  += '<option value="parnell_source_00126">parnell_source_00126</option>';
+            filename_options_str  += '<option value="parnell_source_00127">parnell_source_00127</option>';
+            filename_options_str  += '<option value="parnell_source_00128">parnell_source_00128</option>';
+            filename_options_str  += '<option value="parnell_source_00129">parnell_source_00129</option>';
+            filename_options_str  += '<option value="parnell_source_00130">parnell_source_00130</option>';
+            filename_options_str  += '<option value="parnell_source_00131">parnell_source_00131</option>';
+            filename_options_str  += '<option value="parnell_source_00132">parnell_source_00132</option>';
+            filename_options_str  += '<option value="parnell_source_00133">parnell_source_00133</option>';
+            filename_options_str  += '<option value="parnell_source_00134">parnell_source_00134</option>';
+            filename_options_str  += '<option value="parnell_source_00135">parnell_source_00135</option>';
+            filename_options_str  += '<option value="parnell_source_00136">parnell_source_00136</option>';
+            filename_options_str  += '<option value="parnell_source_00137">parnell_source_00137</option>';
+            filename_options_str  += '<option value="parnell_source_00138">parnell_source_00138</option>';
+            filename_options_str  += '<option value="parnell_source_00139">parnell_source_00139</option>';
+            filename_options_str  += '<option value="parnell_source_00140">parnell_source_00140</option>';
+            filename_options_str  += '<option value="parnell_source_00141">parnell_source_00141</option>';
+            filename_options_str  += '<option value="parnell_source_00142">parnell_source_00142</option>';
+            filename_options_str  += '<option value="parnell_source_00143">parnell_source_00143</option>';
+            filename_options_str  += '<option value="parnell_source_00144">parnell_source_00144</option>';
+            filename_options_str  += '<option value="parnell_source_00145">parnell_source_00145</option>';
+            filename_options_str  += '<option value="parnell_source_00146">parnell_source_00146</option>';
+            filename_options_str  += '<option value="parnell_source_00147">parnell_source_00147</option>';
+            filename_options_str  += '<option value="parnell_source_00148">parnell_source_00148</option>';
+            filename_options_str  += '<option value="parnell_source_00149">parnell_source_00149</option>';
+            filename_options_str  += '<option value="parnell_source_00150">parnell_source_00150</option>';
+            filename_options_str  += '<option value="parnell_source_00151">parnell_source_00151</option>';
+            filename_options_str  += '<option value="parnell_source_00152">parnell_source_00152</option>';
+            filename_options_str  += '<option value="parnell_source_00153">parnell_source_00153</option>';
+            filename_options_str  += '<option value="parnell_source_00154">parnell_source_00154</option>';
+            filename_options_str  += '<option value="parnell_source_00155">parnell_source_00155</option>';
+            filename_options_str  += '<option value="parnell_source_00156">parnell_source_00156</option>';
+            filename_options_str  += '<option value="parnell_source_00157">parnell_source_00157</option>';
+            filename_options_str  += '<option value="parnell_source_00158">parnell_source_00158</option>';
+            filename_options_str  += '<option value="parnell_source_00159">parnell_source_00159</option>';
+            filename_options_str  += '<option value="parnell_source_00160">parnell_source_00160</option>';
+            filename_options_str  += '<option value="parnell_source_00161">parnell_source_00161</option>';
+            filename_options_str  += '<option value="parnell_source_00162">parnell_source_00162</option>';
+            filename_options_str  += '<option value="parnell_source_00163">parnell_source_00163</option>';
+            filename_options_str  += '<option value="parnell_source_00164">parnell_source_00164</option>';
+            filename_options_str  += '<option value="parnell_source_00165">parnell_source_00165</option>';
+            filename_options_str  += '<option value="parnell_source_00166">parnell_source_00166</option>';
+            filename_options_str  += '<option value="parnell_source_00167">parnell_source_00167</option>';
+            filename_options_str  += '<option value="parnell_source_00168">parnell_source_00168</option>';
+            filename_options_str  += '<option value="parnell_source_00169">parnell_source_00169</option>';
+            filename_options_str  += '<option value="parnell_source_00170">parnell_source_00170</option>';
+            filename_options_str  += '<option value="parnell_source_00171">parnell_source_00171</option>';
+            filename_options_str  += '<option value="parnell_source_00172">parnell_source_00172</option>';
+            filename_options_str  += '<option value="parnell_source_00173">parnell_source_00173</option>';
+            filename_options_str  += '<option value="parnell_source_00174">parnell_source_00174</option>';
+            filename_options_str  += '<option value="parnell_source_00175">parnell_source_00175</option>';
+            filename_options_str  += '<option value="parnell_source_00176">parnell_source_00176</option>';
+            filename_options_str  += '<option value="parnell_source_00177">parnell_source_00177</option>';
+            filename_options_str  += '<option value="parnell_source_00178">parnell_source_00178</option>';
+            filename_options_str  += '<option value="parnell_source_00179">parnell_source_00179</option>';
+            filename_options_str  += '<option value="parnell_source_00180">parnell_source_00180</option>';
+            filename_options_str  += '<option value="parnell_source_00181">parnell_source_00181</option>';
+            filename_options_str  += '<option value="parnell_source_00182">parnell_source_00182</option>';
+            filename_options_str  += '<option value="parnell_source_00183">parnell_source_00183</option>';
+            filename_options_str  += '<option value="parnell_source_00184">parnell_source_00184</option>';
+            filename_options_str  += '<option value="parnell_source_00185">parnell_source_00185</option>';
+            filename_options_str  += '<option value="parnell_source_00186">parnell_source_00186</option>';
+            filename_options_str  += '<option value="parnell_source_00187">parnell_source_00187</option>';
+            filename_options_str  += '<option value="parnell_source_00188">parnell_source_00188</option>';
+            filename_options_str  += '<option value="parnell_source_00189">parnell_source_00189</option>';
+            filename_options_str  += '<option value="parnell_source_00190">parnell_source_00190</option>';
+            filename_options_str  += '<option value="parnell_source_00191">parnell_source_00191</option>';
+            filename_options_str  += '<option value="parnell_source_00192">parnell_source_00192</option>';
+            filename_options_str  += '<option value="parnell_source_00193">parnell_source_00193</option>';
+            filename_options_str  += '<option value="parnell_source_00194">parnell_source_00194</option>';
+            filename_options_str  += '<option value="parnell_source_00195">parnell_source_00195</option>';
+            filename_options_str  += '<option value="parnell_source_00196">parnell_source_00196</option>';
+            filename_options_str  += '<option value="parnell_source_00197">parnell_source_00197</option>';
+            filename_options_str  += '<option value="parnell_source_00198">parnell_source_00198</option>';
+            filename_options_str  += '<option value="parnell_source_00199">parnell_source_00199</option>';
+            filename_options_str  += '<option value="parnell_source_00200">parnell_source_00200</option>';
+            filename_options_str  += '<option value="parnell_source_00201">parnell_source_00201</option>';
+            filename_options_str  += '<option value="parnell_source_00202">parnell_source_00202</option>';
+            filename_options_str  += '<option value="parnell_source_00203">parnell_source_00203</option>';
+            filename_options_str  += '<option value="parnell_source_00204">parnell_source_00204</option>';
+            filename_options_str  += '<option value="parnell_source_00205">parnell_source_00205</option>';
+            filename_options_str  += '<option value="parnell_source_00206">parnell_source_00206</option>';
+            filename_options_str  += '<option value="parnell_source_00207">parnell_source_00207</option>';
+            filename_options_str  += '<option value="parnell_source_00208">parnell_source_00208</option>';
+            filename_options_str  += '<option value="parnell_source_00209">parnell_source_00209</option>';
+            filename_options_str  += '<option value="parnell_source_00210">parnell_source_00210</option>';
+            filename_options_str  += '<option value="parnell_source_00211">parnell_source_00211</option>';
+            filename_options_str  += '<option value="parnell_source_00212">parnell_source_00212</option>';
+            filename_options_str  += '<option value="parnell_source_00213">parnell_source_00213</option>';
+            filename_options_str  += '<option value="parnell_source_00214">parnell_source_00214</option>';
+            filename_options_str  += '<option value="parnell_source_00215">parnell_source_00215</option>';
+            filename_options_str  += '<option value="parnell_source_00216">parnell_source_00216</option>';
+            filename_options_str  += '<option value="parnell_source_00217">parnell_source_00217</option>';
+            filename_options_str  += '<option value="parnell_source_00218">parnell_source_00218</option>';
+            filename_options_str  += '<option value="parnell_source_00219">parnell_source_00219</option>';
+            filename_options_str  += '<option value="parnell_source_00220">parnell_source_00220</option>';
+            filename_options_str  += '<option value="parnell_source_00221">parnell_source_00221</option>';
+            filename_options_str  += '<option value="parnell_source_00222">parnell_source_00222</option>';
+            filename_options_str  += '<option value="parnell_source_00223">parnell_source_00223</option>';
+            filename_options_str  += '<option value="parnell_source_00224">parnell_source_00224</option>';
+            filename_options_str  += '<option value="parnell_source_00225">parnell_source_00225</option>';
+            filename_options_str  += '<option value="parnell_source_00226">parnell_source_00226</option>';
+            filename_options_str  += '<option value="parnell_source_00227">parnell_source_00227</option>';
+            filename_options_str  += '<option value="parnell_source_00228">parnell_source_00228</option>';
+            filename_options_str  += '<option value="parnell_source_00229">parnell_source_00229</option>';
+            filename_options_str  += '<option value="parnell_source_00230">parnell_source_00230</option>';
+            filename_options_str  += '<option value="parnell_source_00231">parnell_source_00231</option>';
+            filename_options_str  += '<option value="parnell_source_00232">parnell_source_00232</option>';
+            filename_options_str  += '<option value="parnell_source_00233">parnell_source_00233</option>';
+            filename_options_str  += '<option value="parnell_source_00234">parnell_source_00234</option>';
+            filename_options_str  += '<option value="parnell_source_00235">parnell_source_00235</option>';
+            filename_options_str  += '<option value="parnell_source_00236">parnell_source_00236</option>';
+            filename_options_str  += '<option value="parnell_source_00237">parnell_source_00237</option>';
+            filename_options_str  += '<option value="parnell_source_00238">parnell_source_00238</option>';
+            filename_options_str  += '<option value="parnell_source_00239">parnell_source_00239</option>';
+            filename_options_str  += '<option value="parnell_source_00240">parnell_source_00240</option>';
+            filename_options_str  += '<option value="parnell_source_00241">parnell_source_00241</option>';
+            filename_options_str  += '<option value="parnell_source_00242">parnell_source_00242</option>';
+            filename_options_str  += '<option value="parnell_source_00243">parnell_source_00243</option>';
+            filename_options_str  += '<option value="parnell_source_00244">parnell_source_00244</option>';
+            filename_options_str  += '<option value="parnell_source_00245">parnell_source_00245</option>';
+            filename_options_str  += '<option value="parnell_source_00246">parnell_source_00246</option>';
+            filename_options_str  += '<option value="parnell_source_00247">parnell_source_00247</option>';
+            filename_options_str  += '<option value="parnell_source_00248">parnell_source_00248</option>';
+            filename_options_str  += '<option value="parnell_source_00249">parnell_source_00249</option>';
+            filename_options_str  += '<option value="parnell_source_00250">parnell_source_00250</option>';
+            filename_options_str  += '<option value="parnell_source_00251">parnell_source_00251</option>';
+            filename_options_str  += '<option value="parnell_source_00252">parnell_source_00252</option>';
+            filename_options_str  += '<option value="parnell_source_00253">parnell_source_00253</option>';
+            filename_options_str  += '<option value="parnell_source_00254">parnell_source_00254</option>';
+            filename_options_str  += '<option value="parnell_source_00255">parnell_source_00255</option>';
+            filename_options_str  += '<option value="parnell_source_00256">parnell_source_00256</option>';
+            filename_options_str  += '<option value="parnell_source_00257">parnell_source_00257</option>';
+            filename_options_str  += '<option value="parnell_source_00258">parnell_source_00258</option>';
+            filename_options_str  += '<option value="parnell_source_00259">parnell_source_00259</option>';
+            filename_options_str  += '<option value="parnell_source_00260">parnell_source_00260</option>';
+            filename_options_str  += '<option value="parnell_source_00261">parnell_source_00261</option>';
+            filename_options_str  += '<option value="parnell_source_00262">parnell_source_00262</option>';
+            filename_options_str  += '<option value="parnell_source_00263">parnell_source_00263</option>';
+            filename_options_str  += '<option value="parnell_source_00264">parnell_source_00264</option>';
+            filename_options_str  += '<option value="parnell_source_00265">parnell_source_00265</option>';
+            filename_options_str  += '<option value="parnell_source_00266">parnell_source_00266</option>';
+            filename_options_str  += '<option value="parnell_source_00267">parnell_source_00267</option>';
+            filename_options_str  += '<option value="parnell_source_00268">parnell_source_00268</option>';
+            filename_options_str  += '<option value="parnell_source_00269">parnell_source_00269</option>';
+            filename_options_str  += '<option value="parnell_source_00270">parnell_source_00270</option>';
+            filename_options_str  += '<option value="parnell_source_00271">parnell_source_00271</option>';
+            filename_options_str  += '<option value="parnell_source_00272">parnell_source_00272</option>';
+            filename_options_str  += '<option value="parnell_source_00273">parnell_source_00273</option>';
+            filename_options_str  += '<option value="parnell_source_00274">parnell_source_00274</option>';
+            filename_options_str  += '<option value="parnell_source_00275">parnell_source_00275</option>';
+            filename_options_str  += '<option value="parnell_source_00276">parnell_source_00276</option>';
+            filename_options_str  += '<option value="parnell_source_00277">parnell_source_00277</option>';
+            filename_options_str  += '<option value="parnell_source_00278">parnell_source_00278</option>';
+            filename_options_str  += '<option value="parnell_source_00279">parnell_source_00279</option>';
+            filename_options_str  += '<option value="parnell_source_00280">parnell_source_00280</option>';
+            filename_options_str  += '<option value="parnell_source_00281">parnell_source_00281</option>';
+            filename_options_str  += '<option value="parnell_source_00282">parnell_source_00282</option>';
+            filename_options_str  += '<option value="parnell_source_00283">parnell_source_00283</option>';
+            filename_options_str  += '<option value="parnell_source_00284">parnell_source_00284</option>';
+            filename_options_str  += '<option value="parnell_source_00285">parnell_source_00285</option>';
+            filename_options_str  += '<option value="parnell_source_00286">parnell_source_00286</option>';
+            filename_options_str  += '<option value="parnell_source_00287">parnell_source_00287</option>';
+            filename_options_str  += '<option value="parnell_source_00288">parnell_source_00288</option>';
+            filename_options_str  += '<option value="parnell_source_00289">parnell_source_00289</option>';
+            filename_options_str  += '<option value="parnell_source_00290">parnell_source_00290</option>';
+            filename_options_str  += '<option value="parnell_source_00291">parnell_source_00291</option>';
+            filename_options_str  += '<option value="parnell_source_00292">parnell_source_00292</option>';
+            filename_options_str  += '<option value="parnell_source_00293">parnell_source_00293</option>';
+            filename_options_str  += '<option value="parnell_source_00294">parnell_source_00294</option>';
+            filename_options_str  += '<option value="parnell_source_00295">parnell_source_00295</option>';
+            filename_options_str  += '<option value="parnell_source_00296">parnell_source_00296</option>';
+            filename_options_str  += '<option value="parnell_source_00297">parnell_source_00297</option>';
+            filename_options_str  += '<option value="parnell_source_00298">parnell_source_00298</option>';
+            filename_options_str  += '<option value="parnell_source_00299">parnell_source_00299</option>';
+            filename_options_str  += '<option value="parnell_source_00300">parnell_source_00300</option>';
+            filename_options_str  += '<option value="parnell_source_00301">parnell_source_00301</option>';
+            filename_options_str  += '<option value="parnell_source_00302">parnell_source_00302</option>';
+            filename_options_str  += '<option value="parnell_source_00303">parnell_source_00303</option>';
+            filename_options_str  += '<option value="parnell_source_00304">parnell_source_00304</option>';
+            filename_options_str  += '<option value="parnell_source_00305">parnell_source_00305</option>';
+            filename_options_str  += '<option value="parnell_source_00306">parnell_source_00306</option>';
+            filename_options_str  += '<option value="parnell_source_00307">parnell_source_00307</option>';
+            filename_options_str  += '<option value="parnell_source_00308">parnell_source_00308</option>';
+            filename_options_str  += '<option value="parnell_source_00309">parnell_source_00309</option>';
+            filename_options_str  += '<option value="parnell_source_00310">parnell_source_00310</option>';
+            filename_options_str  += '<option value="parnell_source_00311">parnell_source_00311</option>';
+            filename_options_str  += '<option value="parnell_source_00312">parnell_source_00312</option>';
+            filename_options_str  += '<option value="parnell_source_00313">parnell_source_00313</option>';
+            filename_options_str  += '<option value="parnell_source_00314">parnell_source_00314</option>';
+            filename_options_str  += '<option value="parnell_source_00315">parnell_source_00315</option>';
+            filename_options_str  += '<option value="parnell_source_00316">parnell_source_00316</option>';
+            filename_options_str  += '<option value="parnell_source_00317">parnell_source_00317</option>';
+            filename_options_str  += '<option value="parnell_source_00318">parnell_source_00318</option>';
+            filename_options_str  += '<option value="parnell_source_00319">parnell_source_00319</option>';
+            filename_options_str  += '<option value="parnell_source_00320">parnell_source_00320</option>';
+            filename_options_str  += '<option value="parnell_source_00321">parnell_source_00321</option>';
+            filename_options_str  += '<option value="parnell_source_00322">parnell_source_00322</option>';
+            filename_options_str  += '<option value="parnell_source_00323">parnell_source_00323</option>';
+            filename_options_str  += '<option value="parnell_source_00324">parnell_source_00324</option>';
+            filename_options_str  += '<option value="parnell_source_00325">parnell_source_00325</option>';
+            filename_options_str  += '<option value="parnell_source_00326">parnell_source_00326</option>';
+            filename_options_str  += '<option value="parnell_source_00327">parnell_source_00327</option>';
+            filename_options_str  += '<option value="parnell_source_00328">parnell_source_00328</option>';
+            filename_options_str  += '<option value="parnell_source_00329">parnell_source_00329</option>';
+            filename_options_str  += '<option value="parnell_source_00330">parnell_source_00330</option>';
+            filename_options_str  += '<option value="parnell_source_00331">parnell_source_00331</option>';
+            filename_options_str  += '<option value="parnell_source_00332">parnell_source_00332</option>';
+            filename_options_str  += '<option value="parnell_source_00333">parnell_source_00333</option>';
+            filename_options_str  += '<option value="parnell_source_00334">parnell_source_00334</option>';
+            filename_options_str  += '<option value="parnell_source_00335">parnell_source_00335</option>';
+            filename_options_str  += '<option value="parnell_source_00336">parnell_source_00336</option>';
+            filename_options_str  += '<option value="parnell_source_00337">parnell_source_00337</option>';
+            filename_options_str  += '<option value="parnell_source_00338">parnell_source_00338</option>';
+            filename_options_str  += '<option value="parnell_source_00339">parnell_source_00339</option>';
+            filename_options_str  += '<option value="parnell_source_00340">parnell_source_00340</option>';
+            filename_options_str  += '<option value="parnell_source_00341">parnell_source_00341</option>';
+            filename_options_str  += '<option value="parnell_source_00342">parnell_source_00342</option>';
+            filename_options_str  += '<option value="parnell_source_00343">parnell_source_00343</option>';
+            filename_options_str  += '<option value="parnell_source_00344">parnell_source_00344</option>';
+            filename_options_str  += '<option value="parnell_source_00345">parnell_source_00345</option>';
+            filename_options_str  += '<option value="parnell_source_00346">parnell_source_00346</option>';
+            filename_options_str  += '<option value="parnell_source_00347">parnell_source_00347</option>';
+            filename_options_str  += '<option value="parnell_source_00348">parnell_source_00348</option>';
+            filename_options_str  += '<option value="parnell_source_00349">parnell_source_00349</option>';
+            filename_options_str  += '<option value="parnell_source_00350">parnell_source_00350</option>';
+            filename_options_str  += '<option value="parnell_source_00351">parnell_source_00351</option>';
+            filename_options_str  += '<option value="parnell_source_00352">parnell_source_00352</option>';
+            filename_options_str  += '<option value="parnell_source_00353">parnell_source_00353</option>';
+            filename_options_str  += '<option value="parnell_source_00354">parnell_source_00354</option>';
+            filename_options_str  += '<option value="parnell_source_00355">parnell_source_00355</option>';
+            filename_options_str  += '<option value="parnell_source_00356">parnell_source_00356</option>';
+            filename_options_str  += '<option value="parnell_source_00357">parnell_source_00357</option>';
+            filename_options_str  += '<option value="parnell_source_00358">parnell_source_00358</option>';
+            filename_options_str  += '<option value="parnell_source_00359">parnell_source_00359</option>';
+            filename_options_str  += '<option value="parnell_source_00360">parnell_source_00360</option>';
+            filename_options_str  += '<option value="parnell_source_00361">parnell_source_00361</option>';
+            filename_options_str  += '<option value="parnell_source_00362">parnell_source_00362</option>';
+            filename_options_str  += '<option value="parnell_source_00363">parnell_source_00363</option>';
+            filename_options_str  += '<option value="parnell_source_00364">parnell_source_00364</option>';
+            filename_options_str  += '<option value="parnell_source_00365">parnell_source_00365</option>';
+            filename_options_str  += '<option value="parnell_source_00366">parnell_source_00366</option>';
+            filename_options_str  += '<option value="parnell_source_00367">parnell_source_00367</option>';
+            filename_options_str  += '<option value="parnell_source_00368">parnell_source_00368</option>';
+            filename_options_str  += '<option value="parnell_source_00369">parnell_source_00369</option>';
+            filename_options_str  += '<option value="parnell_source_00370">parnell_source_00370</option>';
+            filename_options_str  += '<option value="parnell_source_00371">parnell_source_00371</option>';
+            filename_options_str  += '<option value="parnell_source_00372">parnell_source_00372</option>';
+            filename_options_str  += '<option value="parnell_source_00373">parnell_source_00373</option>';
+            filename_options_str  += '<option value="parnell_source_00374">parnell_source_00374</option>';
+            filename_options_str  += '<option value="parnell_source_00376">parnell_source_00376</option>';
+            filename_options_str  += '<option value="parnell_source_00377">parnell_source_00377</option>';
+            filename_options_str  += '<option value="parnell_source_00378">parnell_source_00378</option>';
+            filename_options_str  += '<option value="parnell_source_00379">parnell_source_00379</option>';
+            filename_options_str  += '<option value="parnell_source_00380">parnell_source_00380</option>';
+            filename_options_str  += '<option value="parnell_source_00381">parnell_source_00381</option>';
+            filename_options_str  += '<option value="parnell_source_00382">parnell_source_00382</option>';
+            filename_options_str  += '<option value="parnell_source_00383">parnell_source_00383</option>';
+            filename_options_str  += '<option value="parnell_source_00384">parnell_source_00384</option>';
+            filename_options_str  += '<option value="parnell_source_00385">parnell_source_00385</option>';
+            filename_options_str  += '<option value="parnell_source_00386">parnell_source_00386</option>';
+            filename_options_str  += '<option value="parnell_source_00387">parnell_source_00387</option>';
+            filename_options_str  += '<option value="parnell_source_00388">parnell_source_00388</option>';
+            filename_options_str  += '<option value="parnell_source_00389">parnell_source_00389</option>';
+            filename_options_str  += '<option value="parnell_source_00390">parnell_source_00390</option>';
+            filename_options_str  += '<option value="parnell_source_00391">parnell_source_00391</option>';
+            filename_options_str  += '<option value="parnell_source_00392">parnell_source_00392</option>';
+            filename_options_str  += '<option value="parnell_source_00393">parnell_source_00393</option>';
+            filename_options_str  += '<option value="parnell_source_00394">parnell_source_00394</option>';
+            filename_options_str  += '<option value="parnell_source_00395">parnell_source_00395</option>';
+            filename_options_str  += '<option value="parnell_source_00396">parnell_source_00396</option>';
+            filename_options_str  += '<option value="parnell_source_00397">parnell_source_00397</option>';
+            filename_options_str  += '<option value="parnell_source_00398">parnell_source_00398</option>';
+            filename_options_str  += '<option value="parnell_source_00399">parnell_source_00399</option>';
+            filename_options_str  += '<option value="parnell_source_00400">parnell_source_00400</option>';
+            filename_options_str  += '<option value="parnell_source_00401">parnell_source_00401</option>';
+            filename_options_str  += '<option value="parnell_source_00402">parnell_source_00402</option>';
+            filename_options_str  += '<option value="parnell_source_00403">parnell_source_00403</option>';
+            filename_options_str  += '<option value="parnell_source_00404">parnell_source_00404</option>';
+            filename_options_str  += '<option value="parnell_source_00405">parnell_source_00405</option>';
+            filename_options_str  += '<option value="parnell_source_00406">parnell_source_00406</option>';
+            filename_options_str  += '<option value="parnell_source_00407">parnell_source_00407</option>';
+            filename_options_str  += '<option value="parnell_source_00408">parnell_source_00408</option>';
+            filename_options_str  += '<option value="parnell_source_00409">parnell_source_00409</option>';
+            filename_options_str  += '<option value="parnell_source_00410">parnell_source_00410</option>';
+            filename_options_str  += '<option value="parnell_source_00411">parnell_source_00411</option>';
+            filename_options_str  += '<option value="parnell_source_00412">parnell_source_00412</option>';
+            filename_options_str  += '<option value="parnell_source_00413">parnell_source_00413</option>';
+            filename_options_str  += '<option value="parnell_source_00414">parnell_source_00414</option>';
+            filename_options_str  += '<option value="parnell_source_00415">parnell_source_00415</option>';
+            filename_options_str  += '<option value="parnell_source_00416">parnell_source_00416</option>';
+            filename_options_str  += '<option value="parnell_source_00417">parnell_source_00417</option>';
+            filename_options_str  += '<option value="parnell_source_00418">parnell_source_00418</option>';
+            filename_options_str  += '<option value="parnell_source_00419">parnell_source_00419</option>';
+            filename_options_str  += '<option value="parnell_source_00420">parnell_source_00420</option>';
+            filename_options_str  += '<option value="parnell_source_00421">parnell_source_00421</option>';
+            filename_options_str  += '<option value="parnell_source_00422">parnell_source_00422</option>';
+            filename_options_str  += '<option value="parnell_source_00423">parnell_source_00423</option>';
+            filename_options_str  += '<option value="parnell_source_00424">parnell_source_00424</option>';
+            filename_options_str  += '<option value="parnell_source_00425">parnell_source_00425</option>';
+            filename_options_str  += '<option value="parnell_source_00426">parnell_source_00426</option>';
+            filename_options_str  += '<option value="parnell_source_00427">parnell_source_00427</option>';
+            filename_options_str  += '<option value="parnell_source_00428">parnell_source_00428</option>';
+            filename_options_str  += '<option value="parnell_source_00429">parnell_source_00429</option>';
+            filename_options_str  += '<option value="parnell_source_00430">parnell_source_00430</option>';
+            filename_options_str  += '<option value="parnell_source_00431">parnell_source_00431</option>';
+            filename_options_str  += '<option value="parnell_source_00432">parnell_source_00432</option>';
+            filename_options_str  += '<option value="parnell_source_00433">parnell_source_00433</option>';
+            filename_options_str  += '<option value="parnell_source_00434">parnell_source_00434</option>';
+            filename_options_str  += '<option value="parnell_source_00435">parnell_source_00435</option>';
+            filename_options_str  += '<option value="parnell_source_00436">parnell_source_00436</option>';
+            filename_options_str  += '<option value="parnell_source_00437">parnell_source_00437</option>';
+            filename_options_str  += '<option value="parnell_source_00438">parnell_source_00438</option>';
+            filename_options_str  += '<option value="parnell_source_00439">parnell_source_00439</option>';
+            filename_options_str  += '<option value="parnell_source_00440">parnell_source_00440</option>';
+            filename_options_str  += '<option value="parnell_source_00441">parnell_source_00441</option>';
+            filename_options_str  += '<option value="parnell_source_00442">parnell_source_00442</option>';
+            filename_options_str  += '<option value="parnell_source_00443">parnell_source_00443</option>';
+            filename_options_str  += '<option value="parnell_source_00444">parnell_source_00444</option>';
+            filename_options_str  += '<option value="parnell_source_00445">parnell_source_00445</option>';
+            filename_options_str  += '<option value="parnell_source_00446">parnell_source_00446</option>';
+            filename_options_str  += '<option value="parnell_source_00447">parnell_source_00447</option>';
+            filename_options_str  += '<option value="parnell_source_00448">parnell_source_00448</option>';
+            filename_options_str  += '<option value="parnell_source_00449">parnell_source_00449</option>';
+            filename_options_str  += '<option value="parnell_source_00450">parnell_source_00450</option>';
+            filename_options_str  += '<option value="parnell_source_00451">parnell_source_00451</option>';
+            filename_options_str  += '<option value="parnell_source_00452">parnell_source_00452</option>';
+            filename_options_str  += '<option value="parnell_source_00453">parnell_source_00453</option>';
+            filename_options_str  += '<option value="parnell_source_00454">parnell_source_00454</option>';
+            filename_options_str  += '<option value="parnell_source_00455">parnell_source_00455</option>';
+            filename_options_str  += '<option value="parnell_source_00456">parnell_source_00456</option>';
+            filename_options_str  += '<option value="parnell_source_00457">parnell_source_00457</option>';
+            filename_options_str  += '<option value="parnell_source_00458">parnell_source_00458</option>';
+            filename_options_str  += '<option value="parnell_source_00459">parnell_source_00459</option>';
+            filename_options_str  += '<option value="parnell_source_00460">parnell_source_00460</option>';
+            filename_options_str  += '<option value="parnell_source_00461">parnell_source_00461</option>';
+            filename_options_str  += '<option value="parnell_source_00462">parnell_source_00462</option>';
+            filename_options_str  += '<option value="parnell_source_00463">parnell_source_00463</option>';
+            filename_options_str  += '<option value="parnell_source_00464">parnell_source_00464</option>';
+            filename_options_str  += '<option value="parnell_source_00465">parnell_source_00465</option>';
+            filename_options_str  += '<option value="parnell_source_00466">parnell_source_00466</option>';
+            filename_options_str  += '<option value="parnell_source_00467">parnell_source_00467</option>';
+            filename_options_str  += '<option value="parnell_source_00468">parnell_source_00468</option>';
+            filename_options_str  += '<option value="parnell_source_00469">parnell_source_00469</option>';
+            filename_options_str  += '<option value="parnell_source_00470">parnell_source_00470</option>';
+            filename_options_str  += '<option value="parnell_source_00471">parnell_source_00471</option>';
+            filename_options_str  += '<option value="parnell_source_00472">parnell_source_00472</option>';
+            filename_options_str  += '<option value="parnell_source_00473">parnell_source_00473</option>';
+            filename_options_str  += '<option value="parnell_source_00474">parnell_source_00474</option>';
+            filename_options_str  += '<option value="parnell_source_00475">parnell_source_00475</option>';
+            filename_options_str  += '<option value="parnell_source_00476">parnell_source_00476</option>';
+            filename_options_str  += '<option value="parnell_source_00477">parnell_source_00477</option>';
+            filename_options_str  += '<option value="parnell_source_00478">parnell_source_00478</option>';
+            filename_options_str  += '<option value="parnell_source_00479">parnell_source_00479</option>';
+            filename_options_str  += '<option value="parnell_source_00480">parnell_source_00480</option>';
+            filename_options_str  += '<option value="parnell_source_00481">parnell_source_00481</option>';
+            filename_options_str  += '<option value="parnell_source_00482">parnell_source_00482</option>';
+            filename_options_str  += '<option value="parnell_source_00483">parnell_source_00483</option>';
+            filename_options_str  += '<option value="parnell_source_00484">parnell_source_00484</option>';
+            filename_options_str  += '<option value="parnell_source_00485">parnell_source_00485</option>';
+            filename_options_str  += '<option value="parnell_source_00486">parnell_source_00486</option>';
+            filename_options_str  += '<option value="parnell_source_00487">parnell_source_00487</option>';
+            filename_options_str  += '<option value="parnell_source_00488">parnell_source_00488</option>';
+            filename_options_str  += '<option value="parnell_source_00489">parnell_source_00489</option>';
+            filename_options_str  += '<option value="parnell_source_00490">parnell_source_00490</option>';
+            filename_options_str  += '<option value="parnell_source_00491">parnell_source_00491</option>';
+            filename_options_str  += '<option value="parnell_source_00492">parnell_source_00492</option>';
+            filename_options_str  += '<option value="parnell_source_00493">parnell_source_00493</option>';
+            filename_options_str  += '<option value="parnell_source_00494">parnell_source_00494</option>';
+            filename_options_str  += '<option value="parnell_source_00495">parnell_source_00495</option>';
+            filename_options_str  += '<option value="parnell_source_00496">parnell_source_00496</option>';
+            filename_options_str  += '<option value="parnell_source_00497">parnell_source_00497</option>';
+            filename_options_str  += '<option value="parnell_source_00498">parnell_source_00498</option>';
+            filename_options_str  += '<option value="parnell_source_00499">parnell_source_00499</option>';
+            filename_options_str  += '<option value="parnell_source_00500">parnell_source_00500</option>';
+            filename_options_str  += '<option value="parnell_source_00501">parnell_source_00501</option>';
+            filename_options_str  += '<option value="parnell_source_00502">parnell_source_00502</option>';
+            filename_options_str  += '<option value="parnell_source_00503">parnell_source_00503</option>';
+            filename_options_str  += '<option value="parnell_source_00504">parnell_source_00504</option>';
+            filename_options_str  += '<option value="parnell_source_00505">parnell_source_00505</option>';
+            filename_options_str  += '<option value="parnell_source_00506">parnell_source_00506</option>';
+            filename_options_str  += '<option value="parnell_source_00507">parnell_source_00507</option>';
+            filename_options_str  += '<option value="parnell_source_00508">parnell_source_00508</option>';
+            filename_options_str  += '<option value="parnell_source_00509">parnell_source_00509</option>';
+            filename_options_str  += '<option value="parnell_source_00510">parnell_source_00510</option>';
+            filename_options_str  += '<option value="parnell_source_00511">parnell_source_00511</option>';
+            filename_options_str  += '<option value="parnell_source_00512">parnell_source_00512</option>';
+            filename_options_str  += '<option value="parnell_source_00513">parnell_source_00513</option>';
+            filename_options_str  += '<option value="parnell_source_00514">parnell_source_00514</option>';
+            filename_options_str  += '<option value="parnell_source_00515">parnell_source_00515</option>';
+            filename_options_str  += '<option value="parnell_source_00516">parnell_source_00516</option>';
+            filename_options_str  += '<option value="parnell_source_00517">parnell_source_00517</option>';
+            filename_options_str  += '<option value="parnell_source_00518">parnell_source_00518</option>';
+            filename_options_str  += '<option value="parnell_source_00519">parnell_source_00519</option>';
+            filename_options_str  += '<option value="parnell_source_00520">parnell_source_00520</option>';
+            filename_options_str  += '<option value="parnell_source_00521">parnell_source_00521</option>';
+            filename_options_str  += '<option value="parnell_source_00522">parnell_source_00522</option>';
+            filename_options_str  += '<option value="parnell_source_00523">parnell_source_00523</option>';
+            filename_options_str  += '<option value="parnell_source_00524">parnell_source_00524</option>';
+            filename_options_str  += '<option value="parnell_source_00525">parnell_source_00525</option>';
+            filename_options_str  += '<option value="parnell_source_00526">parnell_source_00526</option>';
+            filename_options_str  += '<option value="parnell_source_00527">parnell_source_00527</option>';
+            filename_options_str  += '<option value="parnell_source_00528">parnell_source_00528</option>';
+            filename_options_str  += '<option value="parnell_source_00529">parnell_source_00529</option>';
+            filename_options_str  += '<option value="parnell_source_00530">parnell_source_00530</option>';
+            filename_options_str  += '<option value="parnell_source_00531">parnell_source_00531</option>';
+            filename_options_str  += '<option value="parnell_source_00532">parnell_source_00532</option>';
+            filename_options_str  += '<option value="parnell_source_00533">parnell_source_00533</option>';
+            filename_options_str  += '<option value="parnell_source_00534">parnell_source_00534</option>';
+            filename_options_str  += '<option value="parnell_source_00535">parnell_source_00535</option>';
+            filename_options_str  += '<option value="parnell_source_00536">parnell_source_00536</option>';
+            filename_options_str  += '<option value="parnell_source_00537">parnell_source_00537</option>';
+            filename_options_str  += '<option value="parnell_source_00538">parnell_source_00538</option>';
+            filename_options_str  += '<option value="parnell_source_00539">parnell_source_00539</option>';
+            filename_options_str  += '<option value="parnell_source_00540">parnell_source_00540</option>';
+            filename_options_str  += '<option value="parnell_source_00541">parnell_source_00541</option>';
+            filename_options_str  += '<option value="parnell_source_00542">parnell_source_00542</option>';
+            filename_options_str  += '<option value="parnell_source_00543">parnell_source_00543</option>';
+            filename_options_str  += '<option value="parnell_source_00544">parnell_source_00544</option>';
+            filename_options_str  += '<option value="parnell_source_00545">parnell_source_00545</option>';
+            filename_options_str  += '<option value="parnell_source_00546">parnell_source_00546</option>';
+            filename_options_str  += '<option value="parnell_source_00547">parnell_source_00547</option>';
+            filename_options_str  += '<option value="parnell_source_00548">parnell_source_00548</option>';
+            filename_options_str  += '<option value="parnell_source_00549">parnell_source_00549</option>';
+            filename_options_str  += '<option value="parnell_source_00550">parnell_source_00550</option>';
+            filename_options_str  += '<option value="parnell_source_00551">parnell_source_00551</option>';
+            filename_options_str  += '<option value="parnell_source_00552">parnell_source_00552</option>';
+            filename_options_str  += '<option value="parnell_source_00553">parnell_source_00553</option>';
+            filename_options_str  += '<option value="parnell_source_00554">parnell_source_00554</option>';
+            filename_options_str  += '<option value="parnell_source_00555">parnell_source_00555</option>';
+            filename_options_str  += '<option value="parnell_source_00556">parnell_source_00556</option>';
+            filename_options_str  += '<option value="parnell_source_00557">parnell_source_00557</option>';
+            filename_options_str  += '<option value="parnell_source_00558">parnell_source_00558</option>';
+            filename_options_str  += '<option value="parnell_source_00559">parnell_source_00559</option>';
+            filename_options_str  += '<option value="parnell_source_00560">parnell_source_00560</option>';
+            filename_options_str  += '<option value="parnell_source_00561">parnell_source_00561</option>';
+            filename_options_str  += '<option value="parnell_source_00562">parnell_source_00562</option>';
+            filename_options_str  += '<option value="parnell_source_00563">parnell_source_00563</option>';
+            filename_options_str  += '<option value="parnell_source_00564">parnell_source_00564</option>';
+            filename_options_str  += '<option value="parnell_source_00565">parnell_source_00565</option>';
+            filename_options_str  += '<option value="parnell_source_00566">parnell_source_00566</option>';
+            filename_options_str  += '<option value="parnell_source_00567">parnell_source_00567</option>';
+            filename_options_str  += '<option value="parnell_source_00568">parnell_source_00568</option>';
+            filename_options_str  += '<option value="parnell_source_00569">parnell_source_00569</option>';
+            filename_options_str  += '<option value="parnell_source_00570">parnell_source_00570</option>';
+            filename_options_str  += '<option value="parnell_source_00571">parnell_source_00571</option>';
+            filename_options_str  += '<option value="parnell_source_00572">parnell_source_00572</option>';
+            filename_options_str  += '<option value="parnell_source_00573">parnell_source_00573</option>';
+            filename_options_str  += '<option value="parnell_source_00574">parnell_source_00574</option>';
+            filename_options_str  += '<option value="parnell_source_00575">parnell_source_00575</option>';
+            filename_options_str  += '<option value="parnell_source_00576">parnell_source_00576</option>';
+            filename_options_str  += '<option value="parnell_source_00577">parnell_source_00577</option>';
+            filename_options_str  += '<option value="parnell_source_00578">parnell_source_00578</option>';
+            filename_options_str  += '<option value="parnell_source_00579">parnell_source_00579</option>';
+            filename_options_str  += '<option value="parnell_source_00580">parnell_source_00580</option>';
+            filename_options_str  += '<option value="parnell_source_00581">parnell_source_00581</option>';
+            filename_options_str  += '<option value="parnell_source_00582">parnell_source_00582</option>';
+            filename_options_str  += '<option value="parnell_source_00583">parnell_source_00583</option>';
+            filename_options_str  += '<option value="parnell_source_00584">parnell_source_00584</option>';
+            filename_options_str  += '<option value="parnell_source_00585">parnell_source_00585</option>';
+            filename_options_str  += '<option value="parnell_source_00586">parnell_source_00586</option>';
+            filename_options_str  += '<option value="parnell_source_00587">parnell_source_00587</option>';
+            filename_options_str  += '<option value="parnell_source_00588">parnell_source_00588</option>';
+            filename_options_str  += '<option value="parnell_source_00589">parnell_source_00589</option>';
+            filename_options_str  += '<option value="parnell_source_00590">parnell_source_00590</option>';
+            filename_options_str  += '<option value="parnell_source_00591">parnell_source_00591</option>';
+            filename_options_str  += '<option value="parnell_source_00592">parnell_source_00592</option>';
+            filename_options_str  += '<option value="parnell_source_00593">parnell_source_00593</option>';
+            filename_options_str  += '<option value="parnell_source_00594">parnell_source_00594</option>';
+            filename_options_str  += '<option value="parnell_source_00595">parnell_source_00595</option>';
+            filename_options_str  += '<option value="parnell_source_00596">parnell_source_00596</option>';
+            filename_options_str  += '<option value="parnell_source_00597">parnell_source_00597</option>';
+            filename_options_str  += '<option value="parnell_source_00598">parnell_source_00598</option>';
+            filename_options_str  += '<option value="parnell_source_00599">parnell_source_00599</option>';
+            filename_options_str  += '<option value="parnell_source_00600">parnell_source_00600</option>';
+            filename_options_str  += '<option value="parnell_source_00601">parnell_source_00601</option>';
+            filename_options_str  += '<option value="parnell_source_00602">parnell_source_00602</option>';
+            filename_options_str  += '<option value="parnell_source_00603">parnell_source_00603</option>';
+            filename_options_str  += '<option value="parnell_source_00604">parnell_source_00604</option>';
+            filename_options_str  += '<option value="parnell_source_00605">parnell_source_00605</option>';
+            filename_options_str  += '<option value="parnell_source_00606">parnell_source_00606</option>';
+            filename_options_str  += '<option value="parnell_source_00607">parnell_source_00607</option>';
+            filename_options_str  += '<option value="parnell_source_00608">parnell_source_00608</option>';
+            filename_options_str  += '<option value="parnell_source_00609">parnell_source_00609</option>';
+            filename_options_str  += '<option value="parnell_source_00610">parnell_source_00610</option>';
+            filename_options_str  += '<option value="parnell_source_00611">parnell_source_00611</option>';
+            filename_options_str  += '<option value="parnell_source_00612">parnell_source_00612</option>';
+            filename_options_str  += '<option value="parnell_source_00613">parnell_source_00613</option>';
+            filename_options_str  += '<option value="parnell_source_00614">parnell_source_00614</option>';
+            filename_options_str  += '<option value="parnell_source_00615">parnell_source_00615</option>';
+            filename_options_str  += '<option value="parnell_source_00616">parnell_source_00616</option>';
+            filename_options_str  += '<option value="parnell_source_00617">parnell_source_00617</option>';
+            filename_options_str  += '<option value="parnell_source_00618">parnell_source_00618</option>';
+            filename_options_str  += '<option value="parnell_source_00619">parnell_source_00619</option>';
+            filename_options_str  += '<option value="parnell_source_00620">parnell_source_00620</option>';
+            filename_options_str  += '<option value="parnell_source_00621">parnell_source_00621</option>';
+            filename_options_str  += '<option value="parnell_source_00622">parnell_source_00622</option>';
+            filename_options_str  += '<option value="parnell_source_00623">parnell_source_00623</option>';
+            filename_options_str  += '<option value="parnell_source_00624">parnell_source_00624</option>';
+            filename_options_str  += '<option value="parnell_source_00625">parnell_source_00625</option>';
+            filename_options_str  += '<option value="parnell_source_00626">parnell_source_00626</option>';
+            filename_options_str  += '<option value="parnell_source_00627">parnell_source_00627</option>';
+            filename_options_str  += '<option value="parnell_source_00628">parnell_source_00628</option>';
+            filename_options_str  += '<option value="parnell_source_00629">parnell_source_00629</option>';
+            filename_options_str  += '<option value="parnell_source_00630">parnell_source_00630</option>';
+            filename_options_str  += '<option value="parnell_source_00631">parnell_source_00631</option>';
+            filename_options_str  += '<option value="parnell_source_00632">parnell_source_00632</option>';
+            filename_options_str  += '<option value="parnell_source_00633">parnell_source_00633</option>';
+            filename_options_str  += '<option value="parnell_source_00634">parnell_source_00634</option>';
+            filename_options_str  += '<option value="parnell_source_00635">parnell_source_00635</option>';
+            filename_options_str  += '<option value="parnell_source_00636">parnell_source_00636</option>';
+            filename_options_str  += '<option value="parnell_source_00637">parnell_source_00637</option>';
+            filename_options_str  += '<option value="parnell_source_00638">parnell_source_00638</option>';
+            filename_options_str  += '<option value="parnell_source_00639">parnell_source_00639</option>';
+            filename_options_str  += '<option value="parnell_source_00640">parnell_source_00640</option>';
+            filename_options_str  += '<option value="parnell_source_00641">parnell_source_00641</option>';
+            filename_options_str  += '<option value="parnell_source_00642">parnell_source_00642</option>';
+            filename_options_str  += '<option value="parnell_source_00643">parnell_source_00643</option>';
+            filename_options_str  += '<option value="parnell_source_00644">parnell_source_00644</option>';
+            filename_options_str  += '<option value="parnell_source_00645">parnell_source_00645</option>';
+            filename_options_str  += '<option value="parnell_source_00646">parnell_source_00646</option>';
+            filename_options_str  += '<option value="parnell_source_00647">parnell_source_00647</option>';
+            filename_options_str  += '<option value="parnell_source_00648">parnell_source_00648</option>';
+            filename_options_str  += '<option value="parnell_source_00649">parnell_source_00649</option>';
+            filename_options_str  += '<option value="parnell_source_00650">parnell_source_00650</option>';
+            filename_options_str  += '<option value="parnell_source_00651">parnell_source_00651</option>';
+            filename_options_str  += '<option value="parnell_source_00652">parnell_source_00652</option>';
+            filename_options_str  += '<option value="parnell_source_00653">parnell_source_00653</option>';
+            filename_options_str  += '<option value="parnell_source_00654">parnell_source_00654</option>';
+            filename_options_str  += '<option value="parnell_source_00655">parnell_source_00655</option>';
+            filename_options_str  += '<option value="parnell_source_00656">parnell_source_00656</option>';
+            filename_options_str  += '<option value="parnell_source_00657">parnell_source_00657</option>';
+            filename_options_str  += '<option value="parnell_source_00658">parnell_source_00658</option>';
+            filename_options_str  += '<option value="parnell_source_00659">parnell_source_00659</option>';
+            filename_options_str  += '<option value="parnell_source_00660">parnell_source_00660</option>';
+            filename_options_str  += '<option value="parnell_source_00661">parnell_source_00661</option>';
+            filename_options_str  += '<option value="parnell_source_00662">parnell_source_00662</option>';
+            filename_options_str  += '<option value="parnell_source_00663">parnell_source_00663</option>';
+            filename_options_str  += '<option value="parnell_source_00664">parnell_source_00664</option>';
+            sel_filename.innerHTML = filename_options_str;
+            div_filename.appendChild(sel_filename);
+            var lab_filename = document.createElement('div');
+            lab_filename.innerHTML = 'Speech Report';
+            lab_filename.className = 'filterlabel';
+            div_filename.appendChild(lab_filename);
+            var reset_filename = document.createElement('div');
+            reset_filename.innerHTML = 'clear filter';
+            reset_filename.className = 'filterlabel';
+            reset_filename.onclick = function() {
+                var options = document.getElementById("sel_filename").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_filename.appendChild(reset_filename);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_speech_num = document.createElement('div');
+            div_speech_num.id = "div_speech_num";
+            div_speech_num.className= "filterselect";
+            document.getElementById("menu").appendChild(div_speech_num);
+            sel_speech_num = document.createElement('select');
+            sel_speech_num.multiple = true;
+            sel_speech_num.size = 10;
+            sel_speech_num.id = "sel_speech_num";
+            var speech_num_options_str = "<option value='' unselected></option>";
+            sel_speech_num.onchange = function(){filterFunc()};
+            speech_num_options_str  += '<option value="speech_00001">speech_00001</option>';
+            speech_num_options_str  += '<option value="speech_00002">speech_00002</option>';
+            speech_num_options_str  += '<option value="speech_00003">speech_00003</option>';
+            speech_num_options_str  += '<option value="speech_00004">speech_00004</option>';
+            speech_num_options_str  += '<option value="speech_00005">speech_00005</option>';
+            speech_num_options_str  += '<option value="speech_00006">speech_00006</option>';
+            speech_num_options_str  += '<option value="speech_00007">speech_00007</option>';
+            speech_num_options_str  += '<option value="speech_00008">speech_00008</option>';
+            speech_num_options_str  += '<option value="speech_00009">speech_00009</option>';
+            speech_num_options_str  += '<option value="speech_00010">speech_00010</option>';
+            speech_num_options_str  += '<option value="speech_00011">speech_00011</option>';
+            speech_num_options_str  += '<option value="speech_00012">speech_00012</option>';
+            speech_num_options_str  += '<option value="speech_00013">speech_00013</option>';
+            speech_num_options_str  += '<option value="speech_00014">speech_00014</option>';
+            speech_num_options_str  += '<option value="speech_00015">speech_00015</option>';
+            speech_num_options_str  += '<option value="speech_00016">speech_00016</option>';
+            speech_num_options_str  += '<option value="speech_00017">speech_00017</option>';
+            speech_num_options_str  += '<option value="speech_00018">speech_00018</option>';
+            speech_num_options_str  += '<option value="speech_00019">speech_00019</option>';
+            speech_num_options_str  += '<option value="speech_00020">speech_00020</option>';
+            speech_num_options_str  += '<option value="speech_00021">speech_00021</option>';
+            speech_num_options_str  += '<option value="speech_00022">speech_00022</option>';
+            speech_num_options_str  += '<option value="speech_00023">speech_00023</option>';
+            speech_num_options_str  += '<option value="speech_00024">speech_00024</option>';
+            speech_num_options_str  += '<option value="speech_00025">speech_00025</option>';
+            speech_num_options_str  += '<option value="speech_00026">speech_00026</option>';
+            speech_num_options_str  += '<option value="speech_00028">speech_00028</option>';
+            speech_num_options_str  += '<option value="speech_00029">speech_00029</option>';
+            speech_num_options_str  += '<option value="speech_00030">speech_00030</option>';
+            speech_num_options_str  += '<option value="speech_00031">speech_00031</option>';
+            speech_num_options_str  += '<option value="speech_00032">speech_00032</option>';
+            speech_num_options_str  += '<option value="speech_00033">speech_00033</option>';
+            speech_num_options_str  += '<option value="speech_00034">speech_00034</option>';
+            speech_num_options_str  += '<option value="speech_00035">speech_00035</option>';
+            speech_num_options_str  += '<option value="speech_00036">speech_00036</option>';
+            speech_num_options_str  += '<option value="speech_00037">speech_00037</option>';
+            speech_num_options_str  += '<option value="speech_00038">speech_00038</option>';
+            speech_num_options_str  += '<option value="speech_00039">speech_00039</option>';
+            speech_num_options_str  += '<option value="speech_00040">speech_00040</option>';
+            speech_num_options_str  += '<option value="speech_00041">speech_00041</option>';
+            speech_num_options_str  += '<option value="speech_00042">speech_00042</option>';
+            speech_num_options_str  += '<option value="speech_00043">speech_00043</option>';
+            speech_num_options_str  += '<option value="speech_00044">speech_00044</option>';
+            speech_num_options_str  += '<option value="speech_00045">speech_00045</option>';
+            speech_num_options_str  += '<option value="speech_00046">speech_00046</option>';
+            speech_num_options_str  += '<option value="speech_00047">speech_00047</option>';
+            speech_num_options_str  += '<option value="speech_00048">speech_00048</option>';
+            speech_num_options_str  += '<option value="speech_00049">speech_00049</option>';
+            speech_num_options_str  += '<option value="speech_00050">speech_00050</option>';
+            speech_num_options_str  += '<option value="speech_00051">speech_00051</option>';
+            speech_num_options_str  += '<option value="speech_00052">speech_00052</option>';
+            speech_num_options_str  += '<option value="speech_00053">speech_00053</option>';
+            speech_num_options_str  += '<option value="speech_00054">speech_00054</option>';
+            speech_num_options_str  += '<option value="speech_00055">speech_00055</option>';
+            speech_num_options_str  += '<option value="speech_00056">speech_00056</option>';
+            speech_num_options_str  += '<option value="speech_00058">speech_00058</option>';
+            speech_num_options_str  += '<option value="speech_00059">speech_00059</option>';
+            speech_num_options_str  += '<option value="speech_00060">speech_00060</option>';
+            speech_num_options_str  += '<option value="speech_00061">speech_00061</option>';
+            speech_num_options_str  += '<option value="speech_00062">speech_00062</option>';
+            speech_num_options_str  += '<option value="speech_00063">speech_00063</option>';
+            speech_num_options_str  += '<option value="speech_00064">speech_00064</option>';
+            speech_num_options_str  += '<option value="speech_00065">speech_00065</option>';
+            speech_num_options_str  += '<option value="speech_00066">speech_00066</option>';
+            speech_num_options_str  += '<option value="speech_00067">speech_00067</option>';
+            speech_num_options_str  += '<option value="speech_00068">speech_00068</option>';
+            speech_num_options_str  += '<option value="speech_00069">speech_00069</option>';
+            speech_num_options_str  += '<option value="speech_00070">speech_00070</option>';
+            speech_num_options_str  += '<option value="speech_00071">speech_00071</option>';
+            speech_num_options_str  += '<option value="speech_00072">speech_00072</option>';
+            speech_num_options_str  += '<option value="speech_00073">speech_00073</option>';
+            speech_num_options_str  += '<option value="speech_00074">speech_00074</option>';
+            speech_num_options_str  += '<option value="speech_00075">speech_00075</option>';
+            speech_num_options_str  += '<option value="speech_00076">speech_00076</option>';
+            speech_num_options_str  += '<option value="speech_00077">speech_00077</option>';
+            speech_num_options_str  += '<option value="speech_00078">speech_00078</option>';
+            speech_num_options_str  += '<option value="speech_00079">speech_00079</option>';
+            speech_num_options_str  += '<option value="speech_00080">speech_00080</option>';
+            speech_num_options_str  += '<option value="speech_00081">speech_00081</option>';
+            speech_num_options_str  += '<option value="speech_00082">speech_00082</option>';
+            speech_num_options_str  += '<option value="speech_00083">speech_00083</option>';
+            speech_num_options_str  += '<option value="speech_00084">speech_00084</option>';
+            speech_num_options_str  += '<option value="speech_00085">speech_00085</option>';
+            speech_num_options_str  += '<option value="speech_00086">speech_00086</option>';
+            speech_num_options_str  += '<option value="speech_00087">speech_00087</option>';
+            speech_num_options_str  += '<option value="speech_00088">speech_00088</option>';
+            speech_num_options_str  += '<option value="speech_00089">speech_00089</option>';
+            speech_num_options_str  += '<option value="speech_00090">speech_00090</option>';
+            speech_num_options_str  += '<option value="speech_00091">speech_00091</option>';
+            speech_num_options_str  += '<option value="speech_00092">speech_00092</option>';
+            speech_num_options_str  += '<option value="speech_00093">speech_00093</option>';
+            speech_num_options_str  += '<option value="speech_00094">speech_00094</option>';
+            speech_num_options_str  += '<option value="speech_00095">speech_00095</option>';
+            speech_num_options_str  += '<option value="speech_00096">speech_00096</option>';
+            speech_num_options_str  += '<option value="speech_00097">speech_00097</option>';
+            speech_num_options_str  += '<option value="speech_00098">speech_00098</option>';
+            speech_num_options_str  += '<option value="speech_00099">speech_00099</option>';
+            speech_num_options_str  += '<option value="speech_00100">speech_00100</option>';
+            speech_num_options_str  += '<option value="speech_00101">speech_00101</option>';
+            speech_num_options_str  += '<option value="speech_00102">speech_00102</option>';
+            speech_num_options_str  += '<option value="speech_00103">speech_00103</option>';
+            speech_num_options_str  += '<option value="speech_00104">speech_00104</option>';
+            speech_num_options_str  += '<option value="speech_00105">speech_00105</option>';
+            speech_num_options_str  += '<option value="speech_00106">speech_00106</option>';
+            speech_num_options_str  += '<option value="speech_00107">speech_00107</option>';
+            speech_num_options_str  += '<option value="speech_00108">speech_00108</option>';
+            speech_num_options_str  += '<option value="speech_00109">speech_00109</option>';
+            speech_num_options_str  += '<option value="speech_00110">speech_00110</option>';
+            speech_num_options_str  += '<option value="speech_00111">speech_00111</option>';
+            speech_num_options_str  += '<option value="speech_00112">speech_00112</option>';
+            speech_num_options_str  += '<option value="speech_00113">speech_00113</option>';
+            speech_num_options_str  += '<option value="speech_00114">speech_00114</option>';
+            speech_num_options_str  += '<option value="speech_00115">speech_00115</option>';
+            speech_num_options_str  += '<option value="speech_00116">speech_00116</option>';
+            speech_num_options_str  += '<option value="speech_00117">speech_00117</option>';
+            speech_num_options_str  += '<option value="speech_00118">speech_00118</option>';
+            speech_num_options_str  += '<option value="speech_00119">speech_00119</option>';
+            speech_num_options_str  += '<option value="speech_00120">speech_00120</option>';
+            speech_num_options_str  += '<option value="speech_00121">speech_00121</option>';
+            speech_num_options_str  += '<option value="speech_00122">speech_00122</option>';
+            speech_num_options_str  += '<option value="speech_00123">speech_00123</option>';
+            speech_num_options_str  += '<option value="speech_00124">speech_00124</option>';
+            speech_num_options_str  += '<option value="speech_00125">speech_00125</option>';
+            speech_num_options_str  += '<option value="speech_00126">speech_00126</option>';
+            speech_num_options_str  += '<option value="speech_00127">speech_00127</option>';
+            speech_num_options_str  += '<option value="speech_00128">speech_00128</option>';
+            speech_num_options_str  += '<option value="speech_00129">speech_00129</option>';
+            speech_num_options_str  += '<option value="speech_00130">speech_00130</option>';
+            speech_num_options_str  += '<option value="speech_00131">speech_00131</option>';
+            speech_num_options_str  += '<option value="speech_00132">speech_00132</option>';
+            speech_num_options_str  += '<option value="speech_00133">speech_00133</option>';
+            speech_num_options_str  += '<option value="speech_00134">speech_00134</option>';
+            speech_num_options_str  += '<option value="speech_00135">speech_00135</option>';
+            speech_num_options_str  += '<option value="speech_00136">speech_00136</option>';
+            speech_num_options_str  += '<option value="speech_00137">speech_00137</option>';
+            speech_num_options_str  += '<option value="speech_00138">speech_00138</option>';
+            speech_num_options_str  += '<option value="speech_00139">speech_00139</option>';
+            speech_num_options_str  += '<option value="speech_00140">speech_00140</option>';
+            speech_num_options_str  += '<option value="speech_00141">speech_00141</option>';
+            speech_num_options_str  += '<option value="speech_00142">speech_00142</option>';
+            speech_num_options_str  += '<option value="speech_00143">speech_00143</option>';
+            speech_num_options_str  += '<option value="speech_00144">speech_00144</option>';
+            speech_num_options_str  += '<option value="speech_00145">speech_00145</option>';
+            speech_num_options_str  += '<option value="speech_00146">speech_00146</option>';
+            speech_num_options_str  += '<option value="speech_00147">speech_00147</option>';
+            speech_num_options_str  += '<option value="speech_00148">speech_00148</option>';
+            speech_num_options_str  += '<option value="speech_00149">speech_00149</option>';
+            speech_num_options_str  += '<option value="speech_00150">speech_00150</option>';
+            speech_num_options_str  += '<option value="speech_00151">speech_00151</option>';
+            speech_num_options_str  += '<option value="speech_00152">speech_00152</option>';
+            speech_num_options_str  += '<option value="speech_00153">speech_00153</option>';
+            speech_num_options_str  += '<option value="speech_00154">speech_00154</option>';
+            speech_num_options_str  += '<option value="speech_00155">speech_00155</option>';
+            speech_num_options_str  += '<option value="speech_00156">speech_00156</option>';
+            speech_num_options_str  += '<option value="speech_00157">speech_00157</option>';
+            speech_num_options_str  += '<option value="speech_00158">speech_00158</option>';
+            speech_num_options_str  += '<option value="speech_00159">speech_00159</option>';
+            speech_num_options_str  += '<option value="speech_00160">speech_00160</option>';
+            speech_num_options_str  += '<option value="speech_00161">speech_00161</option>';
+            speech_num_options_str  += '<option value="speech_00162">speech_00162</option>';
+            speech_num_options_str  += '<option value="speech_00163">speech_00163</option>';
+            speech_num_options_str  += '<option value="speech_00164">speech_00164</option>';
+            speech_num_options_str  += '<option value="speech_00165">speech_00165</option>';
+            speech_num_options_str  += '<option value="speech_00166">speech_00166</option>';
+            speech_num_options_str  += '<option value="speech_00167">speech_00167</option>';
+            speech_num_options_str  += '<option value="speech_00168">speech_00168</option>';
+            speech_num_options_str  += '<option value="speech_00169">speech_00169</option>';
+            speech_num_options_str  += '<option value="speech_00170">speech_00170</option>';
+            speech_num_options_str  += '<option value="speech_00171">speech_00171</option>';
+            speech_num_options_str  += '<option value="speech_00172">speech_00172</option>';
+            speech_num_options_str  += '<option value="speech_00173">speech_00173</option>';
+            speech_num_options_str  += '<option value="speech_00174">speech_00174</option>';
+            speech_num_options_str  += '<option value="speech_00175">speech_00175</option>';
+            speech_num_options_str  += '<option value="speech_00176">speech_00176</option>';
+            speech_num_options_str  += '<option value="speech_00177">speech_00177</option>';
+            speech_num_options_str  += '<option value="speech_00178">speech_00178</option>';
+            speech_num_options_str  += '<option value="speech_00181">speech_00181</option>';
+            speech_num_options_str  += '<option value="speech_00182">speech_00182</option>';
+            speech_num_options_str  += '<option value="speech_00183">speech_00183</option>';
+            speech_num_options_str  += '<option value="speech_00184">speech_00184</option>';
+            speech_num_options_str  += '<option value="speech_00185">speech_00185</option>';
+            speech_num_options_str  += '<option value="speech_00186">speech_00186</option>';
+            speech_num_options_str  += '<option value="speech_00187">speech_00187</option>';
+            speech_num_options_str  += '<option value="speech_00188">speech_00188</option>';
+            speech_num_options_str  += '<option value="speech_00189">speech_00189</option>';
+            speech_num_options_str  += '<option value="speech_00190">speech_00190</option>';
+            speech_num_options_str  += '<option value="speech_00191">speech_00191</option>';
+            speech_num_options_str  += '<option value="speech_00192">speech_00192</option>';
+            speech_num_options_str  += '<option value="speech_00193">speech_00193</option>';
+            speech_num_options_str  += '<option value="speech_00194">speech_00194</option>';
+            speech_num_options_str  += '<option value="speech_00195">speech_00195</option>';
+            speech_num_options_str  += '<option value="speech_00197">speech_00197</option>';
+            speech_num_options_str  += '<option value="speech_00198">speech_00198</option>';
+            speech_num_options_str  += '<option value="speech_00199">speech_00199</option>';
+            speech_num_options_str  += '<option value="speech_00200">speech_00200</option>';
+            speech_num_options_str  += '<option value="speech_00201">speech_00201</option>';
+            speech_num_options_str  += '<option value="speech_00202">speech_00202</option>';
+            speech_num_options_str  += '<option value="speech_00203">speech_00203</option>';
+            speech_num_options_str  += '<option value="speech_00204">speech_00204</option>';
+            speech_num_options_str  += '<option value="speech_00205">speech_00205</option>';
+            speech_num_options_str  += '<option value="speech_00206">speech_00206</option>';
+            speech_num_options_str  += '<option value="speech_00207">speech_00207</option>';
+            speech_num_options_str  += '<option value="speech_00208">speech_00208</option>';
+            speech_num_options_str  += '<option value="speech_00209">speech_00209</option>';
+            speech_num_options_str  += '<option value="speech_00210">speech_00210</option>';
+            speech_num_options_str  += '<option value="speech_00211">speech_00211</option>';
+            speech_num_options_str  += '<option value="speech_00212">speech_00212</option>';
+            speech_num_options_str  += '<option value="speech_00213">speech_00213</option>';
+            speech_num_options_str  += '<option value="speech_00214">speech_00214</option>';
+            speech_num_options_str  += '<option value="speech_00215">speech_00215</option>';
+            speech_num_options_str  += '<option value="speech_00216">speech_00216</option>';
+            speech_num_options_str  += '<option value="speech_00217">speech_00217</option>';
+            speech_num_options_str  += '<option value="speech_00218">speech_00218</option>';
+            speech_num_options_str  += '<option value="speech_00219">speech_00219</option>';
+            speech_num_options_str  += '<option value="speech_00220">speech_00220</option>';
+            speech_num_options_str  += '<option value="speech_00221">speech_00221</option>';
+            speech_num_options_str  += '<option value="speech_00223">speech_00223</option>';
+            speech_num_options_str  += '<option value="speech_00224">speech_00224</option>';
+            speech_num_options_str  += '<option value="speech_00225">speech_00225</option>';
+            speech_num_options_str  += '<option value="speech_00226">speech_00226</option>';
+            speech_num_options_str  += '<option value="speech_00227">speech_00227</option>';
+            speech_num_options_str  += '<option value="speech_00228">speech_00228</option>';
+            speech_num_options_str  += '<option value="speech_00229">speech_00229</option>';
+            speech_num_options_str  += '<option value="speech_00230">speech_00230</option>';
+            speech_num_options_str  += '<option value="speech_00231">speech_00231</option>';
+            speech_num_options_str  += '<option value="speech_00232">speech_00232</option>';
+            speech_num_options_str  += '<option value="speech_00233">speech_00233</option>';
+            speech_num_options_str  += '<option value="speech_00234">speech_00234</option>';
+            speech_num_options_str  += '<option value="speech_00235">speech_00235</option>';
+            speech_num_options_str  += '<option value="speech_00236">speech_00236</option>';
+            speech_num_options_str  += '<option value="speech_00237">speech_00237</option>';
+            speech_num_options_str  += '<option value="speech_00238">speech_00238</option>';
+            speech_num_options_str  += '<option value="speech_00239">speech_00239</option>';
+            speech_num_options_str  += '<option value="speech_00240">speech_00240</option>';
+            speech_num_options_str  += '<option value="speech_00241">speech_00241</option>';
+            speech_num_options_str  += '<option value="speech_00242">speech_00242</option>';
+            speech_num_options_str  += '<option value="speech_00243">speech_00243</option>';
+            speech_num_options_str  += '<option value="speech_00244">speech_00244</option>';
+            speech_num_options_str  += '<option value="speech_00245">speech_00245</option>';
+            speech_num_options_str  += '<option value="speech_00246">speech_00246</option>';
+            speech_num_options_str  += '<option value="speech_00247">speech_00247</option>';
+            speech_num_options_str  += '<option value="speech_00248">speech_00248</option>';
+            speech_num_options_str  += '<option value="speech_00249">speech_00249</option>';
+            speech_num_options_str  += '<option value="speech_00250">speech_00250</option>';
+            speech_num_options_str  += '<option value="speech_00251">speech_00251</option>';
+            speech_num_options_str  += '<option value="speech_00252">speech_00252</option>';
+            speech_num_options_str  += '<option value="speech_00253">speech_00253</option>';
+            speech_num_options_str  += '<option value="speech_00254">speech_00254</option>';
+            speech_num_options_str  += '<option value="speech_00255">speech_00255</option>';
+            speech_num_options_str  += '<option value="speech_00256">speech_00256</option>';
+            speech_num_options_str  += '<option value="speech_00257">speech_00257</option>';
+            speech_num_options_str  += '<option value="speech_00258">speech_00258</option>';
+            speech_num_options_str  += '<option value="speech_00259">speech_00259</option>';
+            speech_num_options_str  += '<option value="speech_00260">speech_00260</option>';
+            speech_num_options_str  += '<option value="speech_00261">speech_00261</option>';
+            speech_num_options_str  += '<option value="speech_00262">speech_00262</option>';
+            speech_num_options_str  += '<option value="speech_00264">speech_00264</option>';
+            speech_num_options_str  += '<option value="speech_00265">speech_00265</option>';
+            speech_num_options_str  += '<option value="speech_00266">speech_00266</option>';
+            speech_num_options_str  += '<option value="speech_00267">speech_00267</option>';
+            speech_num_options_str  += '<option value="speech_00268">speech_00268</option>';
+            speech_num_options_str  += '<option value="speech_00269">speech_00269</option>';
+            speech_num_options_str  += '<option value="speech_00270">speech_00270</option>';
+            speech_num_options_str  += '<option value="speech_00271">speech_00271</option>';
+            speech_num_options_str  += '<option value="speech_00272">speech_00272</option>';
+            speech_num_options_str  += '<option value="speech_00273">speech_00273</option>';
+            speech_num_options_str  += '<option value="speech_00274">speech_00274</option>';
+            speech_num_options_str  += '<option value="speech_00275">speech_00275</option>';
+            speech_num_options_str  += '<option value="speech_00276">speech_00276</option>';
+            speech_num_options_str  += '<option value="speech_00277">speech_00277</option>';
+            speech_num_options_str  += '<option value="speech_00278">speech_00278</option>';
+            speech_num_options_str  += '<option value="speech_00279">speech_00279</option>';
+            speech_num_options_str  += '<option value="speech_00280">speech_00280</option>';
+            speech_num_options_str  += '<option value="speech_00281">speech_00281</option>';
+            speech_num_options_str  += '<option value="speech_00282">speech_00282</option>';
+            speech_num_options_str  += '<option value="speech_00283">speech_00283</option>';
+            speech_num_options_str  += '<option value="speech_00284">speech_00284</option>';
+            speech_num_options_str  += '<option value="speech_00286">speech_00286</option>';
+            speech_num_options_str  += '<option value="speech_00287">speech_00287</option>';
+            speech_num_options_str  += '<option value="speech_00288">speech_00288</option>';
+            speech_num_options_str  += '<option value="speech_00289">speech_00289</option>';
+            speech_num_options_str  += '<option value="speech_00290">speech_00290</option>';
+            speech_num_options_str  += '<option value="speech_00291">speech_00291</option>';
+            speech_num_options_str  += '<option value="speech_00292">speech_00292</option>';
+            speech_num_options_str  += '<option value="speech_00293">speech_00293</option>';
+            speech_num_options_str  += '<option value="speech_00294">speech_00294</option>';
+            speech_num_options_str  += '<option value="speech_00295">speech_00295</option>';
+            speech_num_options_str  += '<option value="speech_00296">speech_00296</option>';
+            speech_num_options_str  += '<option value="speech_00297">speech_00297</option>';
+            speech_num_options_str  += '<option value="speech_00298">speech_00298</option>';
+            speech_num_options_str  += '<option value="speech_00299">speech_00299</option>';
+            speech_num_options_str  += '<option value="speech_00300">speech_00300</option>';
+            speech_num_options_str  += '<option value="speech_00301">speech_00301</option>';
+            speech_num_options_str  += '<option value="speech_00302">speech_00302</option>';
+            speech_num_options_str  += '<option value="speech_00303">speech_00303</option>';
+            speech_num_options_str  += '<option value="speech_00304">speech_00304</option>';
+            speech_num_options_str  += '<option value="speech_00305">speech_00305</option>';
+            speech_num_options_str  += '<option value="speech_00306">speech_00306</option>';
+            speech_num_options_str  += '<option value="speech_00307">speech_00307</option>';
+            speech_num_options_str  += '<option value="speech_00308">speech_00308</option>';
+            speech_num_options_str  += '<option value="speech_00309">speech_00309</option>';
+            speech_num_options_str  += '<option value="speech_00310">speech_00310</option>';
+            speech_num_options_str  += '<option value="speech_00311">speech_00311</option>';
+            speech_num_options_str  += '<option value="speech_00312">speech_00312</option>';
+            speech_num_options_str  += '<option value="speech_00313">speech_00313</option>';
+            speech_num_options_str  += '<option value="speech_00314">speech_00314</option>';
+            speech_num_options_str  += '<option value="speech_00315">speech_00315</option>';
+            speech_num_options_str  += '<option value="speech_00316">speech_00316</option>';
+            speech_num_options_str  += '<option value="speech_00317">speech_00317</option>';
+            speech_num_options_str  += '<option value="speech_00318">speech_00318</option>';
+            speech_num_options_str  += '<option value="speech_00319">speech_00319</option>';
+            speech_num_options_str  += '<option value="speech_00320">speech_00320</option>';
+            speech_num_options_str  += '<option value="speech_00321">speech_00321</option>';
+            speech_num_options_str  += '<option value="speech_00322">speech_00322</option>';
+            speech_num_options_str  += '<option value="speech_00323">speech_00323</option>';
+            speech_num_options_str  += '<option value="speech_00324">speech_00324</option>';
+            speech_num_options_str  += '<option value="speech_00325">speech_00325</option>';
+            speech_num_options_str  += '<option value="speech_00326">speech_00326</option>';
+            speech_num_options_str  += '<option value="speech_00327">speech_00327</option>';
+            speech_num_options_str  += '<option value="speech_00328">speech_00328</option>';
+            speech_num_options_str  += '<option value="speech_00329">speech_00329</option>';
+            speech_num_options_str  += '<option value="speech_00330">speech_00330</option>';
+            speech_num_options_str  += '<option value="speech_00331">speech_00331</option>';
+            speech_num_options_str  += '<option value="speech_00332">speech_00332</option>';
+            speech_num_options_str  += '<option value="speech_00333">speech_00333</option>';
+            speech_num_options_str  += '<option value="speech_00334">speech_00334</option>';
+            speech_num_options_str  += '<option value="speech_00335">speech_00335</option>';
+            speech_num_options_str  += '<option value="speech_00336">speech_00336</option>';
+            speech_num_options_str  += '<option value="speech_00337">speech_00337</option>';
+            speech_num_options_str  += '<option value="speech_00338">speech_00338</option>';
+            speech_num_options_str  += '<option value="speech_00339">speech_00339</option>';
+            speech_num_options_str  += '<option value="speech_00340">speech_00340</option>';
+            speech_num_options_str  += '<option value="speech_00341">speech_00341</option>';
+            speech_num_options_str  += '<option value="speech_00342">speech_00342</option>';
+            speech_num_options_str  += '<option value="speech_00343">speech_00343</option>';
+            speech_num_options_str  += '<option value="speech_00344">speech_00344</option>';
+            speech_num_options_str  += '<option value="speech_00345">speech_00345</option>';
+            speech_num_options_str  += '<option value="speech_00346">speech_00346</option>';
+            speech_num_options_str  += '<option value="speech_00347">speech_00347</option>';
+            speech_num_options_str  += '<option value="speech_00348">speech_00348</option>';
+            speech_num_options_str  += '<option value="speech_00349">speech_00349</option>';
+            speech_num_options_str  += '<option value="speech_00350">speech_00350</option>';
+            speech_num_options_str  += '<option value="speech_00351">speech_00351</option>';
+            speech_num_options_str  += '<option value="speech_00352">speech_00352</option>';
+            speech_num_options_str  += '<option value="speech_00353">speech_00353</option>';
+            speech_num_options_str  += '<option value="speech_00354">speech_00354</option>';
+            speech_num_options_str  += '<option value="speech_00355">speech_00355</option>';
+            speech_num_options_str  += '<option value="speech_00356">speech_00356</option>';
+            speech_num_options_str  += '<option value="speech_00357">speech_00357</option>';
+            speech_num_options_str  += '<option value="speech_00358">speech_00358</option>';
+            speech_num_options_str  += '<option value="speech_00359">speech_00359</option>';
+            speech_num_options_str  += '<option value="speech_00360">speech_00360</option>';
+            speech_num_options_str  += '<option value="speech_00361">speech_00361</option>';
+            speech_num_options_str  += '<option value="speech_00362">speech_00362</option>';
+            speech_num_options_str  += '<option value="speech_00363">speech_00363</option>';
+            speech_num_options_str  += '<option value="speech_00364">speech_00364</option>';
+            speech_num_options_str  += '<option value="speech_00365">speech_00365</option>';
+            speech_num_options_str  += '<option value="speech_00366">speech_00366</option>';
+            speech_num_options_str  += '<option value="speech_00367">speech_00367</option>';
+            speech_num_options_str  += '<option value="speech_00368">speech_00368</option>';
+            speech_num_options_str  += '<option value="speech_00369">speech_00369</option>';
+            speech_num_options_str  += '<option value="speech_00370">speech_00370</option>';
+            speech_num_options_str  += '<option value="speech_00371">speech_00371</option>';
+            speech_num_options_str  += '<option value="speech_00372">speech_00372</option>';
+            speech_num_options_str  += '<option value="speech_00373">speech_00373</option>';
+            speech_num_options_str  += '<option value="speech_00374">speech_00374</option>';
+            speech_num_options_str  += '<option value="speech_00375">speech_00375</option>';
+            speech_num_options_str  += '<option value="speech_00376">speech_00376</option>';
+            speech_num_options_str  += '<option value="speech_00377">speech_00377</option>';
+            speech_num_options_str  += '<option value="speech_00378">speech_00378</option>';
+            speech_num_options_str  += '<option value="speech_00379">speech_00379</option>';
+            speech_num_options_str  += '<option value="speech_00380">speech_00380</option>';
+            speech_num_options_str  += '<option value="speech_00381">speech_00381</option>';
+            speech_num_options_str  += '<option value="speech_00382">speech_00382</option>';
+            speech_num_options_str  += '<option value="speech_00383">speech_00383</option>';
+            speech_num_options_str  += '<option value="speech_00384">speech_00384</option>';
+            speech_num_options_str  += '<option value="speech_00385">speech_00385</option>';
+            speech_num_options_str  += '<option value="speech_00386">speech_00386</option>';
+            speech_num_options_str  += '<option value="speech_00387">speech_00387</option>';
+            speech_num_options_str  += '<option value="speech_00388">speech_00388</option>';
+            speech_num_options_str  += '<option value="speech_00389">speech_00389</option>';
+            speech_num_options_str  += '<option value="speech_00390">speech_00390</option>';
+            speech_num_options_str  += '<option value="speech_00391">speech_00391</option>';
+            speech_num_options_str  += '<option value="speech_00392">speech_00392</option>';
+            speech_num_options_str  += '<option value="speech_00393">speech_00393</option>';
+            speech_num_options_str  += '<option value="speech_00394">speech_00394</option>';
+            speech_num_options_str  += '<option value="speech_00395">speech_00395</option>';
+            speech_num_options_str  += '<option value="speech_00396">speech_00396</option>';
+            speech_num_options_str  += '<option value="speech_00397">speech_00397</option>';
+            speech_num_options_str  += '<option value="speech_00398">speech_00398</option>';
+            speech_num_options_str  += '<option value="speech_00399">speech_00399</option>';
+            speech_num_options_str  += '<option value="speech_00400">speech_00400</option>';
+            sel_speech_num.innerHTML = speech_num_options_str;
+            div_speech_num.appendChild(sel_speech_num);
+            var lab_speech_num = document.createElement('div');
+            lab_speech_num.innerHTML = 'Speech ID';
+            lab_speech_num.className = 'filterlabel';
+            div_speech_num.appendChild(lab_speech_num);
+            var reset_speech_num = document.createElement('div');
+            reset_speech_num.innerHTML = 'clear filter';
+            reset_speech_num.className = 'filterlabel';
+            reset_speech_num.onclick = function() {
+                var options = document.getElementById("sel_speech_num").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_speech_num.appendChild(reset_speech_num);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_publication = document.createElement('div');
+            div_publication.id = "div_publication";
+            div_publication.className= "filterselect";
+            document.getElementById("menu").appendChild(div_publication);
+            sel_publication = document.createElement('select');
+            sel_publication.multiple = true;
+            sel_publication.size = 10;
+            sel_publication.id = "sel_publication";
+            var publication_options_str = "<option value='' unselected></option>";
+            sel_publication.onchange = function(){filterFunc()};
+            publication_options_str  += '<option value="Birmingham Daily Post">Birmingham Daily Post</option>';
+            publication_options_str  += '<option value="Boston Daily Advertiser">Boston Daily Advertiser</option>';
+            publication_options_str  += '<option value="Boston Daily Globe">Boston Daily Globe</option>';
+            publication_options_str  += '<option value="Brooklyn Daily Eagle">Brooklyn Daily Eagle</option>';
+            publication_options_str  += '<option value="Chicago Daily Tribune">Chicago Daily Tribune</option>';
+            publication_options_str  += '<option value="Cincinnati Daily Gazette">Cincinnati Daily Gazette</option>';
+            publication_options_str  += '<option value="Congressional Record">Congressional Record</option>';
+            publication_options_str  += '<option value="Daily Express">Daily Express</option>';
+            publication_options_str  += '<option value="Daily State Journal">Daily State Journal</option>';
+            publication_options_str  += '<option value="Evening Bulletin">Evening Bulletin</option>';
+            publication_options_str  += '<option value="Fall River Daily Herald">Fall River Daily Herald</option>';
+            publication_options_str  += '<option value="Hansard&apos;s Parliamentary Debates">Hansard&apos;s Parliamentary Debates</option>';
+            publication_options_str  += '<option value="Hansard&apos;s parliamentary debates">Hansard&apos;s parliamentary debates</option>';
+            publication_options_str  += '<option value="Lowell Weekly Sun">Lowell Weekly Sun</option>';
+            publication_options_str  += '<option value="Monmouthshire Merlin">Monmouthshire Merlin</option>';
+            publication_options_str  += '<option value="Morning Post">Morning Post</option>';
+            publication_options_str  += '<option value="New York Herald">New York Herald</option>';
+            publication_options_str  += '<option value="New York Times">New York Times</option>';
+            publication_options_str  += '<option value="North British Daily Mail">North British Daily Mail</option>';
+            publication_options_str  += '<option value="Pall Mall Gazette">Pall Mall Gazette</option>';
+            publication_options_str  += '<option value="Publication Unknown">Publication Unknown</option>';
+            publication_options_str  += '<option value="Record of the Times">Record of the Times</option>';
+            publication_options_str  += '<option value="Rochester Democrat and Chronicle">Rochester Democrat and Chronicle</option>';
+            publication_options_str  += '<option value="Shipping and Mercantile Gazette">Shipping and Mercantile Gazette</option>';
+            publication_options_str  += '<option value="Springfield Daily Republican">Springfield Daily Republican</option>';
+            publication_options_str  += '<option value="St Louis Globe-Democrat">St Louis Globe-Democrat</option>';
+            publication_options_str  += '<option value="St. James&apos;s Gazette">St. James&apos;s Gazette</option>';
+            publication_options_str  += '<option value="St. Louis Daily Globe-Democrat">St. Louis Daily Globe-Democrat</option>';
+            publication_options_str  += '<option value="St. Louis Globe-Democrat">St. Louis Globe-Democrat</option>';
+            publication_options_str  += '<option value="State of Ireland">State of Ireland</option>';
+            publication_options_str  += '<option value="Sunday Times">Sunday Times</option>';
+            publication_options_str  += '<option value="Sunderland Daily Echo">Sunderland Daily Echo</option>';
+            publication_options_str  += '<option value="The Aberdeen Journal">The Aberdeen Journal</option>';
+            publication_options_str  += '<option value="The Belfast News-Letter">The Belfast News-Letter</option>';
+            publication_options_str  += '<option value="The Boston Daily Globe">The Boston Daily Globe</option>';
+            publication_options_str  += '<option value="The Boston Globe">The Boston Globe</option>';
+            publication_options_str  += '<option value="The Bradford Observer">The Bradford Observer</option>';
+            publication_options_str  += '<option value="The Bristol Times and Mirror">The Bristol Times and Mirror</option>';
+            publication_options_str  += '<option value="The Chicago Daily Tribune">The Chicago Daily Tribune</option>';
+            publication_options_str  += '<option value="The Cincinnati Commercial">The Cincinnati Commercial</option>';
+            publication_options_str  += '<option value="The Cincinnati Enquirer">The Cincinnati Enquirer</option>';
+            publication_options_str  += '<option value="The Citzen">The Citzen</option>';
+            publication_options_str  += '<option value="The Commonwealth">The Commonwealth</option>';
+            publication_options_str  += '<option value="The Connaught Telegraph">The Connaught Telegraph</option>';
+            publication_options_str  += '<option value="The Cork Constitution">The Cork Constitution</option>';
+            publication_options_str  += '<option value="The Cork Daily Herald">The Cork Daily Herald</option>';
+            publication_options_str  += '<option value="The Cork Examiner">The Cork Examiner</option>';
+            publication_options_str  += '<option value="The Daily Express">The Daily Express</option>';
+            publication_options_str  += '<option value="The Daily News">The Daily News</option>';
+            publication_options_str  += '<option value="The Daily Post">The Daily Post</option>';
+            publication_options_str  += '<option value="The Daily Review">The Daily Review</option>';
+            publication_options_str  += '<option value="The Daily Telegraph">The Daily Telegraph</option>';
+            publication_options_str  += '<option value="The Derby Daily Telegraph">The Derby Daily Telegraph</option>';
+            publication_options_str  += '<option value="The Devon and Exeter Daily Gazette">The Devon and Exeter Daily Gazette</option>';
+            publication_options_str  += '<option value="The Drogheda Argus">The Drogheda Argus</option>';
+            publication_options_str  += '<option value="The Dublin Evening Mail">The Dublin Evening Mail</option>';
+            publication_options_str  += '<option value="The Dundalk Democrat">The Dundalk Democrat</option>';
+            publication_options_str  += '<option value="The Dundee Courier">The Dundee Courier</option>';
+            publication_options_str  += '<option value="The Dundee Courier and Argus">The Dundee Courier and Argus</option>';
+            publication_options_str  += '<option value="The Evening Bulletin - Providence">The Evening Bulletin - Providence</option>';
+            publication_options_str  += '<option value="The Evening Telegraph">The Evening Telegraph</option>';
+            publication_options_str  += '<option value="The Flag of Ireland">The Flag of Ireland</option>';
+            publication_options_str  += '<option value="The Freeman&apos;s Journal">The Freeman&apos;s Journal</option>';
+            publication_options_str  += '<option value="The Gazette">The Gazette</option>';
+            publication_options_str  += '<option value="The Glasgow Herald">The Glasgow Herald</option>';
+            publication_options_str  += '<option value="The Globe">The Globe</option>';
+            publication_options_str  += '<option value="The Globe and Mail">The Globe and Mail</option>';
+            publication_options_str  += '<option value="The Graphic">The Graphic</option>';
+            publication_options_str  += '<option value="The Huddersfield Daily Chronicle">The Huddersfield Daily Chronicle</option>';
+            publication_options_str  += '<option value="The Irish Times">The Irish Times</option>';
+            publication_options_str  += '<option value="The Irish World and American Industrial Liberator">The Irish World and American Industrial Liberator</option>';
+            publication_options_str  += '<option value="The Irishman">The Irishman</option>';
+            publication_options_str  += '<option value="The Kerry Evening Post">The Kerry Evening Post</option>';
+            publication_options_str  += '<option value="The Kilkenny Moderator">The Kilkenny Moderator</option>';
+            publication_options_str  += '<option value="The Leeds Mercury">The Leeds Mercury</option>';
+            publication_options_str  += '<option value="The Leicester Daily Post">The Leicester Daily Post</option>';
+            publication_options_str  += '<option value="The Liverpool Echo">The Liverpool Echo</option>';
+            publication_options_str  += '<option value="The Liverpool Mercury">The Liverpool Mercury</option>';
+            publication_options_str  += '<option value="The Louisville Commercial">The Louisville Commercial</option>';
+            publication_options_str  += '<option value="The Manchester Courier">The Manchester Courier</option>';
+            publication_options_str  += '<option value="The Manchester Evening News">The Manchester Evening News</option>';
+            publication_options_str  += '<option value="The Manchester Guardian">The Manchester Guardian</option>';
+            publication_options_str  += '<option value="The Morning Post">The Morning Post</option>';
+            publication_options_str  += '<option value="The Nation">The Nation</option>';
+            publication_options_str  += '<option value="The Nationalist and Leinster Times">The Nationalist and Leinster Times</option>';
+            publication_options_str  += '<option value="The Nenagh Guardian">The Nenagh Guardian</option>';
+            publication_options_str  += '<option value="The New York Times">The New York Times</option>';
+            publication_options_str  += '<option value="The Newry Telegraph">The Newry Telegraph</option>';
+            publication_options_str  += '<option value="The Northern Whig">The Northern Whig</option>';
+            publication_options_str  += '<option value="The Pall Mall Gazette">The Pall Mall Gazette</option>';
+            publication_options_str  += '<option value="The People">The People</option>';
+            publication_options_str  += '<option value="The Sheffield Daily Telegraph">The Sheffield Daily Telegraph</option>';
+            publication_options_str  += '<option value="The Sheffield Independent">The Sheffield Independent</option>';
+            publication_options_str  += '<option value="The Standard">The Standard</option>';
+            publication_options_str  += '<option value="The Sun">The Sun</option>';
+            publication_options_str  += '<option value="The Times">The Times</option>';
+            publication_options_str  += '<option value="The Tralee Chronicle">The Tralee Chronicle</option>';
+            publication_options_str  += '<option value="The Washington Post">The Washington Post</option>';
+            publication_options_str  += '<option value="The Weekly Freeman and Irish Agriculturalist">The Weekly Freeman and Irish Agriculturalist</option>';
+            publication_options_str  += '<option value="The Weekly Freeman&apos;s">The Weekly Freeman&apos;s</option>';
+            publication_options_str  += '<option value="The Weekly Freeman&apos;s Journal">The Weekly Freeman&apos;s Journal</option>';
+            publication_options_str  += '<option value="The Weekly Irish Times">The Weekly Irish Times</option>';
+            publication_options_str  += '<option value="United Ireland">United Ireland</option>';
+            publication_options_str  += '<option value="Wheeling Register">Wheeling Register</option>';
+            publication_options_str  += '<option value="Words of the Dead Chief">Words of the Dead Chief</option>';
+            sel_publication.innerHTML = publication_options_str;
+            div_publication.appendChild(sel_publication);
+            var lab_publication = document.createElement('div');
+            lab_publication.innerHTML = 'Publication';
+            lab_publication.className = 'filterlabel';
+            div_publication.appendChild(lab_publication);
+            var reset_publication = document.createElement('div');
+            reset_publication.innerHTML = 'clear filter';
+            reset_publication.className = 'filterlabel';
+            reset_publication.onclick = function() {
+                var options = document.getElementById("sel_publication").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_publication.appendChild(reset_publication);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_place = document.createElement('div');
+            div_place.id = "div_place";
+            div_place.className= "filterselect";
+            document.getElementById("menu").appendChild(div_place);
+            sel_place = document.createElement('select');
+            sel_place.multiple = true;
+            sel_place.size = 10;
+            sel_place.id = "sel_place";
+            var place_options_str = "<option value='' unselected></option>";
+            sel_place.onchange = function(){filterFunc()};
+            place_options_str  += '<option value="Ardnaree, Ireland">Ardnaree, Ireland</option>';
+            place_options_str  += '<option value="Arklow, Ireland">Arklow, Ireland</option>';
+            place_options_str  += '<option value="Athlone, Ireland">Athlone, Ireland</option>';
+            place_options_str  += '<option value="Athy, Ireland">Athy, Ireland</option>';
+            place_options_str  += '<option value="Avondale, Wicklow, Ireland">Avondale, Wicklow, Ireland</option>';
+            place_options_str  += '<option value="Balbriggan, Ireland">Balbriggan, Ireland</option>';
+            place_options_str  += '<option value="Balla, Ireland">Balla, Ireland</option>';
+            place_options_str  += '<option value="Bansha, Ireland">Bansha, Ireland</option>';
+            place_options_str  += '<option value="Beaufort, Ireland">Beaufort, Ireland</option>';
+            place_options_str  += '<option value="Blackrock, Ireland">Blackrock, Ireland</option>';
+            place_options_str  += '<option value="Boston, United States">Boston, United States</option>';
+            place_options_str  += '<option value="Broadstone, Ireland">Broadstone, Ireland</option>';
+            place_options_str  += '<option value="Buttevant, Ireland">Buttevant, Ireland</option>';
+            place_options_str  += '<option value="Cahir, Ireland">Cahir, Ireland</option>';
+            place_options_str  += '<option value="Cambridge, United States">Cambridge, United States</option>';
+            place_options_str  += '<option value="Carlow, Ireland">Carlow, Ireland</option>';
+            place_options_str  += '<option value="Castlebar, Ireland">Castlebar, Ireland</option>';
+            place_options_str  += '<option value="Castlebellingham, Ireland">Castlebellingham, Ireland</option>';
+            place_options_str  += '<option value="Castleconor, Ireland">Castleconor, Ireland</option>';
+            place_options_str  += '<option value="Castletown, Ireland">Castletown, Ireland</option>';
+            place_options_str  += '<option value="Celbridge, Ireland">Celbridge, Ireland</option>';
+            place_options_str  += '<option value="Charleville, Ireland">Charleville, Ireland</option>';
+            place_options_str  += '<option value="Chicago, United States">Chicago, United States</option>';
+            place_options_str  += '<option value="Cincinnati, United States">Cincinnati, United States</option>';
+            place_options_str  += '<option value="Clara, Ireland">Clara, Ireland</option>';
+            place_options_str  += '<option value="Clerkenwell, England">Clerkenwell, England</option>';
+            place_options_str  += '<option value="Clonakilty, Ireland">Clonakilty, Ireland</option>';
+            place_options_str  += '<option value="Clonmel, Ireland">Clonmel, Ireland</option>';
+            place_options_str  += '<option value="Cork Ireland">Cork Ireland</option>';
+            place_options_str  += '<option value="Cork, Ireland">Cork, Ireland</option>';
+            place_options_str  += '<option value="Derry, Ireland">Derry, Ireland</option>';
+            place_options_str  += '<option value="Douglas, Ireland">Douglas, Ireland</option>';
+            place_options_str  += '<option value="Drogheda, Ireland">Drogheda, Ireland</option>';
+            place_options_str  += '<option value="Dromard, Ireland">Dromard, Ireland</option>';
+            place_options_str  += '<option value="Dublin, Ireland">Dublin, Ireland</option>';
+            place_options_str  += '<option value="Dunboyne, Ireland">Dunboyne, Ireland</option>';
+            place_options_str  += '<option value="Dungannon, Ireland">Dungannon, Ireland</option>';
+            place_options_str  += '<option value="Dungarvan, Ireland">Dungarvan, Ireland</option>';
+            place_options_str  += '<option value="Dunleer, Ireland">Dunleer, Ireland</option>';
+            place_options_str  += '<option value="Easky, Ireland">Easky, Ireland</option>';
+            place_options_str  += '<option value="Edinburgh, Scotland">Edinburgh, Scotland</option>';
+            place_options_str  += '<option value="Emyvale, Ireland">Emyvale, Ireland</option>';
+            place_options_str  += '<option value="Enfield, Ireland">Enfield, Ireland</option>';
+            place_options_str  += '<option value="Ennis, Ireland">Ennis, Ireland</option>';
+            place_options_str  += '<option value="Enniscorthy, Ireland">Enniscorthy, Ireland</option>';
+            place_options_str  += '<option value="Fall River, United States">Fall River, United States</option>';
+            place_options_str  += '<option value="Frankfort, United States">Frankfort, United States</option>';
+            place_options_str  += '<option value="Galway, Ireland">Galway, Ireland</option>';
+            place_options_str  += '<option value="Glasgow, Scotland">Glasgow, Scotland</option>';
+            place_options_str  += '<option value="Gortin, Ireland">Gortin, Ireland</option>';
+            place_options_str  += '<option value="Hilltown, Co. Down, Ireland">Hilltown, Co. Down, Ireland</option>';
+            place_options_str  += '<option value="Inishcrone, Ireland">Inishcrone, Ireland</option>';
+            place_options_str  += '<option value="Irishtown, Ireland">Irishtown, Ireland</option>';
+            place_options_str  += '<option value="Kanturk, Ireland">Kanturk, Ireland</option>';
+            place_options_str  += '<option value="Kildare, Ireland">Kildare, Ireland</option>';
+            place_options_str  += '<option value="Kilkenny, Ireland">Kilkenny, Ireland</option>';
+            place_options_str  += '<option value="Kingstown Harbour, Dublin">Kingstown Harbour, Dublin</option>';
+            place_options_str  += '<option value="Knockcroghery, Ireland">Knockcroghery, Ireland</option>';
+            place_options_str  += '<option value="Leeds, England">Leeds, England</option>';
+            place_options_str  += '<option value="Limerick Junction, Ireland">Limerick Junction, Ireland</option>';
+            place_options_str  += '<option value="Limerick, Ireland">Limerick, Ireland</option>';
+            place_options_str  += '<option value="Listowel, Ireland">Listowel, Ireland</option>';
+            place_options_str  += '<option value="Liverpool, England">Liverpool, England</option>';
+            place_options_str  += '<option value="Lixnaw, Ireland">Lixnaw, Ireland</option>';
+            place_options_str  += '<option value="London, England">London, England</option>';
+            place_options_str  += '<option value="Longford, Ireland">Longford, Ireland</option>';
+            place_options_str  += '<option value="Lowell, United States">Lowell, United States</option>';
+            place_options_str  += '<option value="Lynn, United States">Lynn, United States</option>';
+            place_options_str  += '<option value="Malahide, Ireland">Malahide, Ireland</option>';
+            place_options_str  += '<option value="Mallow, Ireland">Mallow, Ireland</option>';
+            place_options_str  += '<option value="Manchester, England">Manchester, England</option>';
+            place_options_str  += '<option value="Maryborough, Ireland">Maryborough, Ireland</option>';
+            place_options_str  += '<option value="Maynooth, Ireland">Maynooth, Ireland</option>';
+            place_options_str  += '<option value="Milltown Malbay">Milltown Malbay</option>';
+            place_options_str  += '<option value="Moate, Ireland">Moate, Ireland</option>';
+            place_options_str  += '<option value="Montreal, Canada">Montreal, Canada</option>';
+            place_options_str  += '<option value="Moyvalley, Ireland">Moyvalley, Ireland</option>';
+            place_options_str  += '<option value="Mullingar">Mullingar</option>';
+            place_options_str  += '<option value="Mullingar, Ireland">Mullingar, Ireland</option>';
+            place_options_str  += '<option value="Navan, Ireland">Navan, Ireland</option>';
+            place_options_str  += '<option value="New Ross, Ireland">New Ross, Ireland</option>';
+            place_options_str  += '<option value="New Tipperary, Ireland">New Tipperary, Ireland</option>';
+            place_options_str  += '<option value="New York, United States">New York, United States</option>';
+            place_options_str  += '<option value="Newark, United States">Newark, United States</option>';
+            place_options_str  += '<option value="Newbridge, Ireland">Newbridge, Ireland</option>';
+            place_options_str  += '<option value="Newcastle-upon-Tyne, England">Newcastle-upon-Tyne, England</option>';
+            place_options_str  += '<option value="Newry, Ireland">Newry, Ireland</option>';
+            place_options_str  += '<option value="Nobber, Ireland">Nobber, Ireland</option>';
+            place_options_str  += '<option value="Nottingham, England">Nottingham, England</option>';
+            place_options_str  += '<option value="Omagh, Ireland">Omagh, Ireland</option>';
+            place_options_str  += '<option value="Pallas, Ireland">Pallas, Ireland</option>';
+            place_options_str  += '<option value="Patrickswell, Ireland">Patrickswell, Ireland</option>';
+            place_options_str  += '<option value="Petersburg, United States">Petersburg, United States</option>';
+            place_options_str  += '<option value="Plymouth, England">Plymouth, England</option>';
+            place_options_str  += '<option value="Portsmouth, England">Portsmouth, England</option>';
+            place_options_str  += '<option value="Providence, United States">Providence, United States</option>';
+            place_options_str  += '<option value="Queenstown, Ireland">Queenstown, Ireland</option>';
+            place_options_str  += '<option value="Rathdrum, Ireland">Rathdrum, Ireland</option>';
+            place_options_str  += '<option value="Richmond, United States">Richmond, United States</option>';
+            place_options_str  += '<option value="Rochester, United States">Rochester, United States</option>';
+            place_options_str  += '<option value="Roscommon, Ireland">Roscommon, Ireland</option>';
+            place_options_str  += '<option value="Scranton, United States">Scranton, United States</option>';
+            place_options_str  += '<option value="Skibbereen, Ireland">Skibbereen, Ireland</option>';
+            place_options_str  += '<option value="Skreen, Ireland">Skreen, Ireland</option>';
+            place_options_str  += '<option value="Springfield, United States">Springfield, United States</option>';
+            place_options_str  += '<option value="St. Louis, United States">St. Louis, United States</option>';
+            place_options_str  += '<option value="Streamstown, Ireland">Streamstown, Ireland</option>';
+            place_options_str  += '<option value="Strokestown, Ireland">Strokestown, Ireland</option>';
+            place_options_str  += '<option value="Templemore, Ireland">Templemore, Ireland</option>';
+            place_options_str  += '<option value="Thurles, Ireland">Thurles, Ireland</option>';
+            place_options_str  += '<option value="Toledo, United States">Toledo, United States</option>';
+            place_options_str  += '<option value="Toronto, Canada">Toronto, Canada</option>';
+            place_options_str  += '<option value="Tralee, Ireland">Tralee, Ireland</option>';
+            place_options_str  += '<option value="Washington DC, United States">Washington DC, United States</option>';
+            place_options_str  += '<option value="Waterford, Ireland">Waterford, Ireland</option>';
+            place_options_str  += '<option value="Wexford, Ireland">Wexford, Ireland</option>';
+            place_options_str  += '<option value="Wheeling, United States">Wheeling, United States</option>';
+            place_options_str  += '<option value="Wicklow">Wicklow</option>';
+            place_options_str  += '<option value="Wicklow, Ireland">Wicklow, Ireland</option>';
+            place_options_str  += '<option value="Wilkes-Barre, United States">Wilkes-Barre, United States</option>';
+            sel_place.innerHTML = place_options_str;
+            div_place.appendChild(sel_place);
+            var lab_place = document.createElement('div');
+            lab_place.innerHTML = 'Location';
+            lab_place.className = 'filterlabel';
+            div_place.appendChild(lab_place);
+            var reset_place = document.createElement('div');
+            reset_place.innerHTML = 'clear filter';
+            reset_place.className = 'filterlabel';
+            reset_place.onclick = function() {
+                var options = document.getElementById("sel_place").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_place.appendChild(reset_place);
+        resetLabels([layer_LandMasses_1]);
+        map.on("zoomend", function(){
+            resetLabels([layer_LandMasses_1]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_LandMasses_1]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_LandMasses_1]);
+        });
+        </script>
+    </body>
+</html>
